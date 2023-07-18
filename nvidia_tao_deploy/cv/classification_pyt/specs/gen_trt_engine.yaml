@@ -1,0 +1,9 @@
+gen_trt_engine:
+  onnx_file: "???"
+  trt_engine: "???"
+  tensorrt:
+    data_type: FP32
+    min_batch_size: 1
+    opt_batch_size: 4
+    max_batch_size: 8
+results_dir: "???"

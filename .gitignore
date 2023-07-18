@@ -1,0 +1,50 @@
+.DS_Store
+/.ipynb_checkpoints/
+*.swp
+*.tmp*
+*~
+/temp/
+/tmp/
+TAGS
+/.mypy_cache/
+__py_cache__
+__pycache__
+
+# Models and logs
+*.log
+*.tlt
+*.eonnx
+*.ejrvs
+*.riva
+*.onnx
+.hydra
+lightning_logs/
+
+# Compiled / optimized files
+*.py[cod]
+*.o
+*.so
+*.etlt
+*.ejrvs
+*.riva
+
+# Tests
+.coverage
+.cache
+/coverage/
+tests/.data/
+tests/test_models/
+tests/test_data/
+
+# Virtualenv
+/venv/
+
+# Setuptools
+/build/
+/dist/
+*.egg-info/
+
+# Local IDE settings
+/.idea/
+/.vscode/
+

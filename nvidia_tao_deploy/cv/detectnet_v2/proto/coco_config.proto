@@ -1,0 +1,26 @@
+// Copyright (c) 2017-2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* coco_config.proto: Protocol buffer definition for specifying config for converting
+* COCO datasets to .tfrecords.
+*
+* Allows the user to specify:
+*  -- Path to images and labels
+*  -- Class mapping
+*  -- Number of partitions (folds) and shards
+*/
+
+syntax = "proto3";
+
+message COCOConfig {
+    string root_directory_path = 1;
+
+    // list of image directories for each partiition.
+    repeated string img_dir_names = 2;
+
+    // list of annotations JSON files for each partition
+    repeated string annotation_files = 3;
+
+    uint32 num_partitions = 4;
+    repeated uint32 num_shards = 5;
+}

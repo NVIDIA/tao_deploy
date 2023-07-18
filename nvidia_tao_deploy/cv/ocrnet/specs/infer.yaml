@@ -1,0 +1,4 @@
+engine: ./trt.engine
+batch_size: 1
+inference_images_dir: ./test_samples
+character_list_file: ./character_list.txt

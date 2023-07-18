@@ -1,0 +1,51 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//proto for the training
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/visualizer_config.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/regularizer_config.proto";
+
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/optimizer.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/learning_rate.proto";
+
+
+message EarlyStopping {
+    string monitor = 1;
+    float min_delta = 2;
+    uint32 patience = 3;
+}
+
+message TrainingConfig {
+    bool enable_augmentation = 48;
+    string retrain_pruned_model = 3;
+    string pretrained_weights = 10;
+    string resume_from_model = 47;
+    float rpn_min_overlap = 4;
+    float rpn_max_overlap = 5;
+    float classifier_min_overlap = 6;
+    float classifier_max_overlap = 7;
+    bool gt_as_roi = 38;
+    float std_scaling = 8;
+    map<string, float> classifier_regr_std = 9;
+    uint32 batch_size_per_gpu = 46;
+    uint32 num_epochs = 11;
+    string output_model = 13;
+    uint32 checkpoint_interval = 49;
+    uint32 rpn_pre_nms_top_N = 35;
+    uint32 rpn_mini_batch = 36;
+    uint32 rpn_nms_max_boxes = 16;
+    float rpn_nms_overlap_threshold = 17;
+    RegularizerConfig regularizer = 20;
+    OptimizerConfig optimizer = 43;
+    LRConfig learning_rate = 45;
+    float lambda_rpn_regr = 39;
+    float lambda_rpn_class = 40;
+    float lambda_cls_regr = 41;
+    float lambda_cls_class = 42;
+    bool enable_qat = 50;
+    repeated float model_parallelism = 51;
+    EarlyStopping early_stopping = 52;
+    VisualizerConfig visualizer = 53;
+}

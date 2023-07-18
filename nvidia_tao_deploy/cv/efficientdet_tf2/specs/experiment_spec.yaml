@@ -1,0 +1,38 @@
+dataset:
+  loader:
+    prefetch_size: 4
+    shuffle_file: False
+  max_instances_per_image: 100
+  train_tfrecords:
+    - '/home/scratch.p3/yuw/datasets/coco/train-*'
+  val_tfrecords:
+    - '/home/scratch.p3/yuw/datasets/coco/val-*'
+  val_json_file: '/home/scratch.p3/yuw/datasets/coco/annotations/instances_val2017.json'
+  val_dirs:
+    - '/home/scratch.p3/yuw/datasets/coco/raw-data/val2017'
+train:
+  qat: True
+  checkpoint: "/home/scratch.p3/yuw/tlt3_experiments/tf2/effdet_d0_coco/weights/efficientdet-d0_160.eff"
+evaluate:
+  checkpoint: "/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/efficientdet-d0_005.int8.engine"
+  batch_size: 1
+  num_samples: 5000
+inference:
+  checkpoint: "/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/efficientdet-d0_005.int8.engine"
+  image_dir: '/home/scratch.p3/yuw/datasets/coco/raw-data/val2017'
+  output_dir: '/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/'
+  label_map: "/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/class_map.yaml"
+  batch_size: 1
+export:
+  # QAT
+  batch_size: 1
+  onnx_file: '/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/efficientdet-d0_005.onnx'
+  checkpoint: '/home/scratch.p3/yuw/tlt3_experiments/tf2/effdet_d0_coco/qat/weights/efficientdet-d0_005.tlt'
+gen_trt_engine:
+  trt_engine: "/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/efficientdet-d0_005.int8.engine"
+  onnx_file: '/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/efficientdet-d0_005.onnx'
+  tensorrt:
+    data_type: 'int8' 
+encryption_key: 'nvidia_tlt'
+data_format: 'channels_last'
+results_dir: '/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/'

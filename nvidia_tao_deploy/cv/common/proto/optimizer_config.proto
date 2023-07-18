@@ -1,0 +1,19 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying optimizer parameters.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/sgd_optimizer_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/adam_optimizer_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/rmsprop_optimizer_config.proto";
+
+message OptimizerConfig {
+	oneof optimizer {
+		AdamOptimizerConfig adam = 1;
+        SGDOptimizerConfig sgd = 2;
+        RMSpropOptimizerConfig rmsprop = 3;
+	}
+}

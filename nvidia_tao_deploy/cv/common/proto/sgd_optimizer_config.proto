@@ -1,0 +1,12 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying ADAM optimizer parameters.
+*/
+
+syntax = "proto3";
+
+message SGDOptimizerConfig {
+    float momentum = 1;
+    bool nesterov = 2;
+}

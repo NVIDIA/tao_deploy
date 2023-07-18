@@ -1,0 +1,15 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MakeNet experiment.
+*/
+
+syntax = "proto3";
+
+message RegConfig {
+    string type = 1;
+    string scope = 2;
+    float weight_decay = 3;
+}

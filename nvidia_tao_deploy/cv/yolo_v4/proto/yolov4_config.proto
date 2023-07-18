@@ -1,0 +1,41 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message YOLOv4Config {
+    // optional
+    string big_anchor_shape = 1;
+    string mid_anchor_shape = 2;
+    string small_anchor_shape = 3;
+
+    // Argument for multi-matching: anchor-gt iou larger than this number will be encoded
+    float matching_neutral_box_iou = 4;
+    float box_matching_iou = 5;
+
+    // required
+    string arch = 6;
+    uint32 nlayers = 7;
+    uint32 arch_conv_blocks = 8; // support [0, 1, 2]
+
+    // required
+    float loss_loc_weight = 9;
+    float loss_neg_obj_weights = 10;
+    float loss_class_weights = 11;
+
+    repeated float freeze_blocks = 12;
+    bool freeze_bn = 13;
+
+    // force YOLO architecture to use ReLU instead of LeakyReLU / Mish
+    bool force_relu = 14;
+    string activation = 21;
+
+    // YOLOv4 additional configs
+    float focal_loss_alpha=15;
+    float focal_loss_gamma=16;
+    float label_smoothing=17;
+
+    // YOLOv4 remove grid sensitivity
+    float big_grid_xy_extend=18;
+    float mid_grid_xy_extend=19;
+    float small_grid_xy_extend=20;
+}

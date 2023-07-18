@@ -1,0 +1,27 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* wandb_config.proto: Protocol buffer definition for
+* training visualizations over weights and biases.
+*/
+
+syntax = "proto3";
+
+message WandBConfig {
+    // Master switch.
+    bool enabled = 1;
+    string key = 2;
+    string project = 3;
+    string entity = 4;
+    bool reinit = 5;
+    string name = 6;
+    repeated string tags = 7;
+    string wandb_dir = 8;
+    string notes = 9;
+    enum MODE {
+        ONLINE = 0;
+        OFFLINE = 1;
+        DISABLED = 2;
+    }
+   MODE mode = 10;
+}

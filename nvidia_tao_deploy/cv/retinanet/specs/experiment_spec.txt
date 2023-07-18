@@ -1,0 +1,113 @@
+eval_config {
+  batch_size: 4
+  validation_period_during_training: 40
+  matching_iou_threshold: 0.5
+}
+
+nms_config {
+  confidence_threshold: 0.001
+  clustering_iou_threshold: 0.5
+  top_k: 250
+}
+dataset_config {
+  target_class_mapping {
+    key: "AutoMobile"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "Automobile"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "Bicycle"
+    value: "bicycle"
+  }
+  target_class_mapping {
+    key: "Heavy Truck"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "Motorcycle"
+    value: "bicycle"
+  }
+  target_class_mapping {
+    key: "Person"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "Person Group"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "Rider"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "Road sign"
+    value: "road_sign"
+  }
+  target_class_mapping {
+    key: "Vehicle"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "automobile"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "bicycle"
+    value: "bicycle"
+  }
+  target_class_mapping {
+    key: "heavy_truck"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "largevehicle"
+    value: "car"
+  }
+  target_class_mapping {
+    key: "motorcycle"
+    value: "bicycle"
+  }
+  target_class_mapping {
+    key: "person"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "person group"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "person_group"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "rider"
+    value: "person"
+  }
+  target_class_mapping {
+    key: "road sign"
+    value: "road_sign"
+  }
+  target_class_mapping {
+    key: "road_sign"
+    value: "road_sign"
+  }
+  target_class_mapping {
+    key: "traffic_light"
+    value: "road_sign"
+  }
+  target_class_mapping {
+    key: "twowheeler"
+    value: "bicycle"
+  }
+  target_class_mapping {
+    key: "vehicle"
+    value: "car"
+  }
+  validation_data_sources: {
+    image_directory_path: "/home/projects2_metropolis/exports/IVA-0010-02_1280_0_181016/images_kitti"
+    label_directory_path: "/home/projects2_metropolis/exports/IVA-0010-02_1280_0_181016/labels_kitti"
+  }
+}

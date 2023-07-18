@@ -1,0 +1,10 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message AugConfig {
+    //required
+    bool rand_hflip = 1;
+    float random_crop_min_scale = 2;
+    float random_crop_max_scale = 3;
+}

@@ -1,0 +1,78 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* model_config.proto: Protocol buffer definition for the model utility of
+* DetectNet V2 training, evaluation.
+*/
+
+syntax = "proto3";
+
+message ModelConfig {
+    // Optional path to a pretrained model that is retrained.
+    string pretrained_model_file = 1;
+
+    // Prevent updates on any layer weights and variables
+    // when pretrained_model_file is supplied.
+    bool freeze_pretrained_layers = 2;
+
+    // Whether to allow modification of loaded models to add missing heads.
+    bool allow_loaded_model_modification = 3;
+
+    // HelNet model parameters.
+    int32 num_layers = 4;
+
+    bool use_pooling = 5;
+
+    bool use_batch_norm = 6;
+
+    // Float between 0 and 1. Fraction of the input units to drop.
+    float dropout_rate = 7;
+
+    message Activation {
+        string activation_type = 1;
+        map<string, float> activation_parameters = 2;
+    }
+    Activation activation = 8;
+
+    // Objectives
+    message BboxObjective {
+        string input = 1;
+        float scale = 2;
+        float offset = 3;
+    }
+    message CovObjective { string input = 1; }
+
+    message ObjectiveSet {
+        BboxObjective bbox = 1;
+        CovObjective cov = 2;
+    }
+    ObjectiveSet objective_set = 9;
+
+    message TrainingPrecision {
+        // Define the floatx setting for Maglev backend.
+        enum BackendFloatx {
+            FLOAT32 = 0;
+            FLOAT16 = 1;
+            INVALID = 2;
+        }
+        BackendFloatx backend_floatx = 1;
+    }
+
+    // Switch between FP16 / FP32 training.
+    TrainingPrecision training_precision = 10;
+
+    // Freeze batch norm layer.
+    bool freeze_bn = 11;
+
+    //  Freeze blocks in templates that support block-wise supporting.
+    repeated float freeze_blocks = 12;
+
+    // Model template to use for feature extractor.
+    string arch = 13;
+
+    // Pretrained model should load graph as well or just weights.
+    bool load_graph = 14;
+
+    // parameter to set all shortcuts to 1x1 projection layers.
+    bool all_projections = 15;
+}

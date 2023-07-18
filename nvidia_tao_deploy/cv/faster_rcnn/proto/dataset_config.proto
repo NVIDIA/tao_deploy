@@ -1,0 +1,56 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* dataset_config.proto: Protocol buffer definition for specifying parameters for dataset
+* to use for training and evaluation.
+*
+* Allows the user to specify:
+*  -- Dimensions and format of the images
+*  -- Paths to directory with images and pattern for TFRecords files
+*/
+
+syntax = "proto3";
+
+message DataSource
+{
+    string tfrecords_path = 1;
+    string image_directory_path = 2;
+    // weight values, which is used to weight losses for each frame from different data sources
+    float source_weight = 3;
+}
+
+message DatasetConfig {
+
+    // Datasources
+    // Note that paths should be relative to the DATA_ROOT path
+    repeated DataSource data_sources = 1;
+
+    string image_extension = 2;
+
+    // Optional. If not defined, then the dataset target classes will be used as is.
+    map<string, string> target_class_mapping = 3;
+
+    // Optional. Specifies a way to obtain data for evaluation.
+    // If not specified, no evaluation data will be used.
+    oneof dataset_split_type {
+        uint32 validation_fold = 4;
+        DataSource validation_data_source = 5;
+    }
+
+    // Use legacy dataloader if not multisource dataloader for SSD,
+    // FasterRCNN, Retinanet, DSSD and Yolo.
+    enum DATALOADER_MODE {
+      MULTISOURCE = 0;
+      LEGACY = 1;
+      DEFAULT = 2;
+    }
+    DATALOADER_MODE dataloader_mode = 6;
+
+    // Sampling mode
+    enum SAMPLING_MODE {
+        USER_DEFINED = 0;
+        PROPORTIONAL = 1;
+        UNIFORM = 2;
+    }
+    SAMPLING_MODE sampling_mode = 7;
+}

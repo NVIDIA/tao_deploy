@@ -1,0 +1,45 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* evaluation_config.proto: Protocol buffer definition for specifying parameters for
+* evaluating DetectNet V2 detections against ground truth labels.
+*
+* Allows the user to specify:
+*  -- Minimum overlap between a detection and ground truth to count as a true positive.
+*  -- Evaluation buckets that each specify e.g. minimum and maximum object height.
+*/
+
+syntax = "proto3";
+
+message EvaluationConfig {
+
+    // How often validation cost and metrics such as AP are computed.
+    uint32 validation_period_during_training = 1;
+
+    // The first validation epoch. After this, validation is done on
+    // epochs first_validation_epoch + i*validation_period_during_training.
+    uint32 first_validation_epoch = 2;
+
+    // Map from model target class to a float in [0, 1]
+    // Note: map fields are repeated implicitly
+    map<string, float> minimum_detection_ground_truth_overlap = 3;
+
+    // Defines evaluation min box accptance parameters.
+    message EvaluationBoxConfig {
+        int32 minimum_height = 1;
+        int32 maximum_height = 2;
+
+        int32 minimum_width = 3;
+        int32 maximum_width = 4;
+    }
+
+    // Map e.g. 'class' level to its parameters.
+    map<string, EvaluationBoxConfig> evaluation_box_config = 4;
+
+    // Defining mode of AP calculation.
+    enum AP_MODE {
+      SAMPLE = 0;
+      INTEGRATE = 1;
+    }
+    AP_MODE average_precision_mode = 5;
+}

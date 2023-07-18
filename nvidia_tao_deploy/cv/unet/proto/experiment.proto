@@ -1,0 +1,31 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+
+syntax = "proto3";
+import "nvidia_tao_deploy/cv/unet/proto/dataset_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/evaluation_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/model_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/data_class_config.proto";
+
+message Experiment {
+
+    uint32 random_seed = 1;
+
+    // Set-up the model config
+    ModelConfig model_config = 5;
+
+    // Set-up dataloader configuration.
+    DatasetConfig dataset_config = 2;
+
+    // Set-up evaluator.
+    EvaluationConfig evaluation_config = 6;
+
+    // Set-up training op.
+    TrainingConfig training_config = 9;
+
+    //Setting up the cost function config
+    DataClassConfig data_class_config = 10;
+
+}
+

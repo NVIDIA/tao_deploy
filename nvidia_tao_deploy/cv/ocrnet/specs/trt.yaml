@@ -1,0 +1,7 @@
+model: /workspace/model.etlt
+save_engine_path: ./trt.engine
+encryption_key: nvidia_tao
+workspace_size: 2
+min_batch_size: 1
+opt_batch_size: 1
+max_batch_size: 1

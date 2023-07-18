@@ -1,0 +1,32 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* bbox_rasterizer_config.proto: Protocol buffer definition for providing labels to bounding box
+* regression.
+*
+* Allows the user to specify:
+*  -- Parameters for setting up the bounding box rasterizer.
+*  -- Rasterizer parameters for each model target class.
+*/
+
+syntax = "proto3";
+
+message BboxRasterizerConfig {
+
+    message TargetClassConfig {
+        // All attributes are required.
+        // Names must match those of the target classes of CostFunctionParameters proto.
+        // Order is not important.
+        float cov_center_x = 1;
+        float cov_center_y = 2;
+
+        float cov_radius_x = 3;
+        float cov_radius_y = 4;
+
+        float bbox_min_radius = 5;
+    }
+
+    map<string, TargetClassConfig> target_class_config = 1;
+
+    float deadzone_radius = 2;
+}

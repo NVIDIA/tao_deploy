@@ -1,0 +1,36 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MakeNet experiment.
+*/
+
+syntax = "proto3";
+
+message StepLrConfig {
+    float learning_rate = 1;
+    uint32 step_size = 2;
+    float gamma = 3;
+}
+
+message SoftAnnealLrConfig {
+    float learning_rate = 1;
+    float soft_start = 2;
+    float annealing_divider = 3;
+    repeated float annealing_points = 7;
+}
+
+message CosineLrConfig {
+    float learning_rate = 1;
+    float min_lr_ratio = 2;
+    float soft_start = 3;
+}
+
+message LRConfig {
+    oneof lr_scheduler {
+        StepLrConfig step = 1;
+        SoftAnnealLrConfig soft_anneal = 2;
+        CosineLrConfig cosine = 3;
+    }
+}

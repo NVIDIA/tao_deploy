@@ -1,0 +1,38 @@
+// Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
+
+/**
+* label_filters.proto: Contains all the necessary fields to define label filters (for loss mask
+* support).
+*/
+
+syntax = "proto3";
+
+// The user can provide a list of label filters.
+message LabelFilter {
+
+    // Begin label filters' proto definitions.
+
+    message BboxDimensionsLabelFilter {
+        float min_width = 1;
+        float min_height = 2;
+        float max_width = 3;
+        float max_height = 4;
+    }
+
+    message BboxCropLabelFilter {
+        float crop_left = 1;
+        float crop_right = 2;
+        float crop_top = 3;
+        float crop_bottom = 4;
+    }
+
+    message SourceClassLabelFilter { repeated string source_class_names = 4; }
+
+    // End label filters' proto definitions.
+
+    oneof label_filter_params {
+        BboxDimensionsLabelFilter bbox_dimensions_label_filter = 1;
+        BboxCropLabelFilter bbox_crop_label_filter = 2;
+        SourceClassLabelFilter source_class_label_filter = 3;
+    }
+}

@@ -1,0 +1,44 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//proto for the experiment_spec file
+
+syntax = "proto3";
+
+// Change later once DNv2 is merged
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/augmentation_config.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/dataset_config.proto";
+
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/training.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/model.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/inference.proto";
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/evaluation.proto";
+
+
+message Experiment {
+// random seed
+uint32 random_seed = 1;
+
+// verbose or not
+bool verbose = 2;
+
+// NGC key
+string enc_key = 6;
+
+// dataset config
+DatasetConfig dataset_config = 5;
+
+// data augmentation
+AugmentationConfig augmentation_config = 7;
+
+//model structure config
+ModelConfig model_config = 3;
+
+//training parameters
+TrainingConfig training_config = 4;
+
+// inference config
+InferenceConfig inference_config = 8;
+
+// evaluation config
+EvaluationConfig evaluation_config = 9;
+}

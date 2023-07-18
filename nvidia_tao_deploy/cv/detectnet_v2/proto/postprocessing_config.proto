@@ -1,0 +1,59 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* postprocessing_config.proto: Protocol buffer definition for configuring the post-processing
+* block of the GB experiment.
+*/
+
+syntax = "proto3";
+
+
+message ClusteringConfig {
+    // Grid cells with coverage lower than this threshold will be ignored
+    float coverage_threshold = 1;
+    int32 minimum_bounding_box_height = 2;
+    // Defining possible clustering algorithms.
+    enum ClusteringAlgorithm {
+        DBSCAN = 0;
+        NMS = 1;
+        HYBRID = 2;
+    }
+    ClusteringAlgorithm clustering_algorithm=3;
+
+    // DBSCAN parameters
+    float dbscan_eps = 4;
+    int32 dbscan_min_samples = 5;
+    int32 neighborhood_size = 6;
+    float dbscan_confidence_threshold = 7;
+
+
+    // NMS Clustering parameters
+    float nms_iou_threshold = 8;
+    float nms_confidence_threshold = 9;
+}
+
+
+message ConfidenceConfig {
+    // Confidence threshold to use during inference for the class.
+    float confidence_threshold = 1;
+
+    // String filename of the confidence model for the class, e.g. car.uff.
+    string confidence_model_filename = 2;
+
+    // Normalization mode for the confidence model input generation.
+    string normalization_mode = 3;
+}
+
+
+message PostProcessingConfig {
+
+    message TargetClassConfig {
+
+        // Clustering configuration for the class.
+        ClusteringConfig clustering_config = 1;
+
+        ConfidenceConfig confidence_config = 2;
+
+    }
+    map<string, TargetClassConfig> target_class_config = 1;
+}

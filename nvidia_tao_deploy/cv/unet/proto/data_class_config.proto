@@ -1,0 +1,17 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DataClassConfig {
+    message TargetClass {
+        // The order of target classes in CostFunctionParameters defines the order
+        // they appear in network predictions.
+        string name = 1;
+        float class_weight = 2;
+        //train id from the image
+        int32 label_id = 3;
+        //the class to which a class needs to be mapped
+        string mapping_class = 4;
+    }
+    repeated TargetClass target_classes = 1;
+}

@@ -1,0 +1,35 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for an SSD experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/lprnet/proto/lp_sequence_dataset_config.proto";
+import "nvidia_tao_deploy/cv/lprnet/proto/augmentation_config.proto";
+import "nvidia_tao_deploy/cv/lprnet/proto/eval_config.proto";
+import "nvidia_tao_deploy/cv/lprnet/proto/lpr_config.proto";
+
+message Experiment {
+
+	uint32 random_seed = 1;
+
+	// Set-up dataloader configuration.
+	LPDatasetConfig dataset_config = 2;
+	AugmentationConfig augmentation_config = 3;
+
+	// Set-up training op.
+	TrainingConfig training_config = 4;
+
+	// Optional
+	EvalConfig eval_config = 5;
+
+	// Required
+	LPRNetConfig lpr_config = 6;
+
+}
+

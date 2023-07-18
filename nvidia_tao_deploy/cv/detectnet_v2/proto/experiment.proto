@@ -1,0 +1,52 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a GridBox experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/augmentation_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/bbox_rasterizer_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/cost_function_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/dataset_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/evaluation_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/model_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/objective_label_filter.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/postprocessing_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/dataset_export_config.proto";
+
+message Experiment {
+
+    uint32 random_seed = 1;
+
+    // Set-up dataloader configuration.
+    DatasetConfig dataset_config = 2;
+    AugmentationConfig augmentation_config = 3;
+
+    // Set-up post processor config.
+    PostProcessingConfig postprocessing_config = 4;
+    ModelConfig model_config = 5;
+
+    // Set-up evaluator.
+    EvaluationConfig evaluation_config = 6;
+
+    // Set-up cost function.
+    CostFunctionConfig cost_function_config = 8;
+
+    // Set-up training op.
+    TrainingConfig training_config = 9;
+
+    // Set-up GT rasterizer.
+    BboxRasterizerConfig bbox_rasterizer_config = 10;
+
+    // Optional. A label filter config for loss mask generation.
+    ObjectiveLabelFilter loss_mask_label_filter = 11;
+
+    // Set-up DatasetExportConfig.
+    repeated DatasetExportConfig dataset_export_config = 12;
+
+}

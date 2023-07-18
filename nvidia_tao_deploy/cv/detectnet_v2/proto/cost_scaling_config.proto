@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying cost scaling parameters.
+*/
+
+syntax = "proto3";
+
+message CostScalingConfig {
+
+    bool enabled = 1;
+
+    double initial_exponent = 2;
+
+    double increment = 3;
+
+    double decrement = 4;
+}

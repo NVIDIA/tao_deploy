@@ -1,0 +1,21 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message AugmentationConfig {
+    int32 output_width = 1;
+    int32 output_height = 2;
+    int32 output_channel = 3;
+    float random_crop_min_scale = 4;
+    float random_crop_max_scale = 5;
+    float random_crop_min_ar = 6;
+    float random_crop_max_ar = 7;
+    float zoom_out_min_scale = 8;
+    float zoom_out_max_scale = 9;
+    int32 brightness = 10;
+    float contrast = 11;
+    float saturation = 12;
+    int32 hue = 13;
+    float random_flip = 14;
+    map<string, float> image_mean = 15;
+}

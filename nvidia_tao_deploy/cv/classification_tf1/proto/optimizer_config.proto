@@ -1,0 +1,39 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MakeNet experiment.
+*/
+
+syntax = "proto3";
+
+message SgdOptimizerConfig {
+    float lr = 1;
+    float decay = 2;
+    float momentum = 3;
+    bool nesterov = 4;
+}
+
+message AdamOptimizerConfig {
+    float lr = 1;
+    float beta_1 = 2;
+    float beta_2 = 3;
+    float epsilon = 4;
+    float decay = 5;
+}
+
+message RmspropOptimizerConfig {
+    float lr = 1;
+    float rho = 2;
+    float epsilon = 3;
+    float decay = 4;
+}
+
+message OptimizerConfig {
+    oneof optim {
+        SgdOptimizerConfig sgd = 1;
+        AdamOptimizerConfig adam = 2;
+        RmspropOptimizerConfig rmsprop = 3;
+    }
+}

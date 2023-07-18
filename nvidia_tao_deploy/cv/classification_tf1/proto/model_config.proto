@@ -1,0 +1,42 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MakeNet experiment.
+*/
+
+syntax = "proto3";
+
+enum InterpolationMethod {
+    BILINEAR = 0;
+    BICUBIC = 1;
+}
+
+message BatchNormConfig {
+    float momentum = 1;
+    float epsilon = 2;
+}
+
+message Activation {
+    string activation_type = 1;
+    map<string, float> activation_parameters = 2;
+}
+
+message ModelConfig {
+    string arch = 1;
+    string input_image_size = 2;
+    InterpolationMethod resize_interpolation_method = 12;
+    uint32 n_layers = 3;
+    bool retain_head = 4;
+    bool use_batch_norm = 5;
+    bool use_bias = 6;
+    bool use_pooling = 7;
+    bool all_projections = 8;
+    bool freeze_bn = 9;
+    repeated uint32 freeze_blocks = 10;
+    float dropout = 11;
+    BatchNormConfig batch_norm_config = 13;
+    Activation activation = 14;
+    string byom_model = 15;
+}

@@ -1,0 +1,20 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying regularizer parameters.
+*/
+
+syntax = "proto3";
+
+message RegularizerConfig {
+
+    enum RegularizationType {
+        NO_REG = 0;
+        L1 = 1;
+        L2 = 2;
+    }
+
+    RegularizationType type = 1;
+
+    float weight = 2;
+}

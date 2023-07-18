@@ -1,0 +1,14 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying ADAM optimizer parameters.
+*/
+
+syntax = "proto3";
+
+message RMSpropOptimizerConfig {
+    float rho = 1;
+    float momentum = 2;
+    float epsilon = 3;
+    bool centered = 4;
+}

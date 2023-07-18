@@ -1,0 +1,17 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying learning rate schedule parameters.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/soft_start_annealing_schedule_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/soft_start_cosine_annealing_schedule_config.proto";
+
+message LearningRateConfig {
+    oneof learning_rate {
+        SoftStartAnnealingScheduleConfig soft_start_annealing_schedule = 1;
+        SoftStartCosineAnnealingScheduleConfig soft_start_cosine_annealing_schedule = 2;
+    }
+}

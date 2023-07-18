@@ -1,0 +1,27 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message YOLOv3Config {
+    // optional
+    string big_anchor_shape = 1;
+    string mid_anchor_shape = 2;
+    string small_anchor_shape = 3;
+    float matching_neutral_box_iou = 4;
+
+    // required
+    string arch = 5;
+    uint32 nlayers = 6;
+    uint32 arch_conv_blocks = 7; // support [0, 1, 2]
+
+    // required
+    float loss_loc_weight = 8;
+    float loss_neg_obj_weights = 9;
+    float loss_class_weights = 10;
+
+    repeated float freeze_blocks = 11;
+    bool freeze_bn = 12;
+
+    // force YOLO architecture to use ReLU instead of LeakyReLU
+    bool force_relu = 13;
+}

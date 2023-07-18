@@ -1,0 +1,25 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying early stopping annealing learning rate schedule parameters.
+*/
+
+syntax = "proto3";
+
+message EarlyStoppingAnnealingScheduleConfig {
+    // Learning rate at the beginning and the end of training.
+    float min_learning_rate = 1;
+    
+    // Learning rate in the middle of training.
+    float max_learning_rate = 2;
+        
+    // The number of epochs after which learning rate achieves max_learning_rate.
+    uint32 soft_start_epochs = 3;
+
+    // The number of epochs after which learning rate starts to drop towards min_learning_rate.
+    uint32 annealing_epochs = 4;
+
+    // The number of steps after which we drop learning rate or stop training if we
+    // see no improvement in validation loss.
+    uint32 patience_steps = 5;
+}

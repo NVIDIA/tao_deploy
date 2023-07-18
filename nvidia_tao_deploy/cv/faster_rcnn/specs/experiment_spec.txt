@@ -1,0 +1,159 @@
+random_seed: 42
+enc_key: 'nvidia_tlt'
+verbose: True
+model_config {
+    input_image_config {
+        image_type: RGB
+        image_channel_order: 'bgr'
+        size_height_width {
+            height: 544
+            width: 960
+        }
+        image_channel_mean {
+            key: 'b'
+            value: 103.939
+        }
+        image_channel_mean {
+            key: 'g'
+            value: 116.779
+        }
+        image_channel_mean {
+            key: 'r'
+            value: 123.68
+        }
+        image_scaling_factor: 1.0
+        max_objects_num_per_image: 100
+    }
+}
+dataset_config {
+    target_class_mapping {
+        key: "AutoMobile"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "Automobile"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "Bicycle"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "Heavy Truck"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "Motorcycle"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "Person"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "Person Group"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "Rider"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "Road sign"
+        value: "road_sign"
+    }
+    target_class_mapping {
+        key: "Vehicle"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "automobile"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "bicycle"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "heavy_truck"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "largevehicle"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "motorcycle"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "person"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "person group"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "person_group"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "rider"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "road sign"
+        value: "road_sign"
+    }
+    target_class_mapping {
+        key: "road_sign"
+        value: "road_sign"
+    }
+    target_class_mapping {
+        key: "traffic_light"
+        value: "road_sign"
+    }
+    target_class_mapping {
+        key: "twowheeler"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "vehicle"
+        value: "car"
+    }
+      target_class_mapping {
+        key: "car"
+        value: "car"
+    }
+    target_class_mapping {
+        key: "bicycle"
+        value: "bicycle"
+    }
+    target_class_mapping {
+        key: "person"
+        value: "person"
+    }
+    target_class_mapping {
+        key: "road_sign"
+        value: "road_sign"
+    }
+    validation_data_source {
+        image_directory_path : '/home/scratch.p3/sean/datasets/its_mini_test/images/'
+    }
+}
+inference_config {
+    batch_size: 8
+    object_confidence_thres: 0.001
+    bbox_visualize_threshold: 0.6
+    classifier_nms_max_boxes: 100
+    classifier_nms_overlap_threshold: 0.3
+    images_dir: "/home/projects2_metropolis/exports/IVA-0010-02_1280_0_181016/images_kitti"
+}
+evaluation_config {
+    batch_size: 8
+    classifier_nms_max_boxes: 100
+    classifier_nms_overlap_threshold: 0.3
+    object_confidence_thres: 0.001
+    gt_matching_iou_threshold: 0.5
+}

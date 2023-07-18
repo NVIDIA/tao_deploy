@@ -1,0 +1,11 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message NMSConfig {
+    float confidence_threshold = 1;
+    float clustering_iou_threshold = 2;
+    uint32 top_k = 3;
+    uint32 infer_nms_score_bits = 4;
+    bool force_on_cpu = 5;
+}

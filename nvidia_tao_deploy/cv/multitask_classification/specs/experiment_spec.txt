@@ -1,0 +1,21 @@
+model_config {
+  arch: "resnet",
+  n_layers: 18
+  # Setting these parameters to true to match the template downloaded from NGC.
+  use_batch_norm: true
+  all_projections: true
+  freeze_blocks: 0
+  freeze_blocks: 1
+  input_image_size: "3,80,60"
+}
+train_config {
+  preprocess_mode: "caffe"
+}
+eval_config {
+  eval_dataset_path: "/home/projects1_metropolis/tmp/sean/22.04/classification_notebook/data/split/test"
+  model_path: "/home/projects1_metropolis/tmp/sean/22.04/classification_notebook/output/weights/resnet_080.tlt"
+  top_k: 3
+  batch_size: 256
+  n_workers: 8
+  enable_center_crop: True
+}

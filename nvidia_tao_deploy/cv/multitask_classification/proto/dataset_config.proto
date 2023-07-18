@@ -1,0 +1,10 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DataSource
+{
+    string train_csv_path = 1;
+    string image_directory_path = 2;
+    string val_csv_path = 3;
+}

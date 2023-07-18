@@ -1,0 +1,15 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message ModelConfig {
+    //required
+    string model_name = 1;
+    bool freeze_bn = 2;
+    string freeze_blocks = 3;
+    string aspect_ratios = 4;
+    float anchor_scale = 5;
+    uint32 min_level = 6;
+    uint32 max_level = 7;
+    uint32 num_scales = 8;
+}

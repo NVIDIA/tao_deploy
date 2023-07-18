@@ -1,0 +1,48 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying training parameters.
+*
+* Allows the user defining the experiment to specify:
+*  -- Batch size and training epoch target
+*  -- Learning rate and regularization
+*  -- The optimizer to be used, with relevant hyperparameters
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/cost_scaling_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/learning_rate_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/optimizer_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/regularizer_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/visualizer_config.proto";
+
+message TrainingConfig {
+
+    // Per GPU minibatch size.
+    uint32 batch_size_per_gpu = 1;
+
+    // Number of training epochs.
+    uint32 num_epochs = 2;
+
+    // Learning rate.
+    LearningRateConfig learning_rate = 3;
+
+    // Regularizer.
+    RegularizerConfig regularizer = 4;
+
+    // Optimizer.
+    OptimizerConfig optimizer = 5;
+
+    // Cost scaling.
+    CostScalingConfig cost_scaling = 6;
+
+    // Interval to checkpoint training model.
+    uint32 checkpoint_interval = 7;
+
+    // Flag to enable qat model.
+    bool enable_qat = 8;
+
+    // Setting up visualizer config.
+    VisualizerConfig visualizer=9;
+}

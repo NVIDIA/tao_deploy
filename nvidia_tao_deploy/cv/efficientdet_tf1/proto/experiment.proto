@@ -1,0 +1,36 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for an EfficientDet experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/efficientdet_tf1/proto/aug_config.proto";
+import "nvidia_tao_deploy/cv/efficientdet_tf1/proto/dataset_config.proto";
+import "nvidia_tao_deploy/cv/efficientdet_tf1/proto/eval_config.proto";
+import "nvidia_tao_deploy/cv/efficientdet_tf1/proto/model_config.proto";
+import "nvidia_tao_deploy/cv/efficientdet_tf1/proto/training_config.proto";
+
+message Experiment {
+
+	// Set-up dataloader configuration.
+	DatasetConfig dataset_config = 1;
+
+	// Set-up training op.
+	TrainingConfig training_config = 2;
+
+	// Eval
+	EvalConfig eval_config = 3;
+
+	// Augmentation
+	AugConfig augmentation_config = 4;
+
+	// Eval
+	ModelConfig model_config = 5;
+
+}
+
+	

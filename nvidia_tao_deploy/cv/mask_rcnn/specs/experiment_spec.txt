@@ -1,0 +1,22 @@
+eval_batch_size: 8
+data_config{
+    image_size: "(576, 960)"
+    eval_samples: 500
+    val_json_file: "/home/scratch.p3/datasets/astro17/valid_mask_final.json"
+    # dataset specific parameters
+    num_classes: 2
+}
+maskrcnn_config {
+    # Mask-RCNN heads.
+    include_mask: True
+    mrcnn_resolution: 28
+
+    # evaluation
+    test_detections_per_image: 100
+    test_nms: 0.5
+    test_rpn_pre_nms_topn: 1000
+    test_rpn_post_nms_topn: 1000
+    test_rpn_nms_thresh: 0.7
+
+}
+

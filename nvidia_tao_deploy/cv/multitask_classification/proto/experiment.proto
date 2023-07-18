@@ -1,0 +1,20 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MClassification experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/classification_tf1/proto/model_config.proto";
+import "nvidia_tao_deploy/cv/multitask_classification/proto/dataset_config.proto";
+
+message Experiment {
+    DataSource dataset_config = 1;
+    ModelConfig model_config = 2;
+    TrainingConfig training_config = 3;
+    uint32 random_seed = 4;
+}

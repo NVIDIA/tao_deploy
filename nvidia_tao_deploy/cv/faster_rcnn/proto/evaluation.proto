@@ -1,0 +1,33 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//evaluation config
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/trt_config.proto";
+
+message IoUThresholdRange {
+    float start = 1;
+    float end = 2;
+    float step = 3;
+}
+
+
+message EvaluationConfig {
+    string model = 3;
+    uint32 rpn_pre_nms_top_N = 12;
+    uint32 rpn_nms_max_boxes = 6;
+    float rpn_nms_overlap_threshold = 7;
+    uint32 classifier_nms_max_boxes = 8;
+    float classifier_nms_overlap_threshold = 9;
+    float object_confidence_thres = 11;
+    bool use_voc07_11point_metric = 13;
+    uint32 validation_period_during_training = 15;
+    uint32 batch_size = 16;
+    TrtInference trt_evaluation = 17;
+    oneof iou_threshold_config {
+        IoUThresholdRange gt_matching_iou_threshold_range = 18;
+        float gt_matching_iou_threshold = 19;
+    }
+    bool visualize_pr_curve = 20;
+}

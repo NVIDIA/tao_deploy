@@ -1,0 +1,26 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* augmentation_config.proto: Protocol buffer definition for data augmentation.
+*/
+
+syntax = "proto3";
+
+message AugmentationConfig
+{
+message SpatialAugmentation {
+    // Probability of flipping an image horizontally/vertically.
+    // Crop and Resize
+    float hflip_probability = 1;
+    float vflip_probability = 2;
+     float crop_and_resize_prob = 3;
+     float crop_and_resize_ratio = 4;
+}
+SpatialAugmentation spatial_augmentation = 2;
+message BrightnessAugmentation {
+    // Standard deviation for color shift augmentation.
+    float delta = 1;
+    }
+BrightnessAugmentation brightness_augmentation =3;
+
+}

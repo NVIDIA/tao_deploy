@@ -1,0 +1,19 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DataConfig {
+    string image_size = 1;
+    bool augment_input_data = 2;
+    uint32 num_classes = 3;
+    bool skip_crowd_during_training = 4;
+    // bool use_category = 5;
+    string training_file_pattern = 6;
+    string validation_file_pattern = 7;
+    string val_json_file = 8;
+    uint32 eval_samples = 9;
+    uint32 prefetch_buffer_size = 10;
+    uint32 shuffle_buffer_size = 11;
+    uint32 n_workers = 12;
+    uint32 max_num_instances = 13;
+}
