@@ -78,7 +78,7 @@ We recommend adding this command to your local `~/.bashrc` file, so that every n
 In order to maintain a uniform development environment across all users, TAO Toolkit provides a base environment docker that has been built and uploaded to NGC for the developers. For instantiating the docker, simply run the `tao_deploy` CLI. The usage for the command line launcher is mentioned below.
 
 ```sh
-usage: tao_deploy [-h] [--gpus GPUS] [--volume VOLUME] [--env ENV] [--mounts_file MOUNTS_FILE] [--shm_size SHM_SIZE] [--run_as_user] [--tag TAG] [--ulimit ULIMIT] [--port PORT]
+usage: tao_deploy [-h] [--gpus GPUS] [--volume VOLUME] [--env ENV] [--mounts_file MOUNTS_FILE] [--shm_size SHM_SIZE] [--run_as_user] [--ulimit ULIMIT] [--port PORT]
 
 Tool to run the TAO Toolkit Deploy container.
 
@@ -91,7 +91,6 @@ optional arguments:
                         Path to the mounts file.
   --shm_size SHM_SIZE   Shared memory size for docker
   --run_as_user         Flag to run as user
-  --tag TAG             The tag value for the local dev docker.
   --ulimit ULIMIT       Docker ulimits for the host machine.
   --port PORT           Port mapping (e.g. 8889:8889).
 
@@ -118,10 +117,10 @@ cd $NV_TAO_DEPLOY_TOP/docker
 
 #### <a name='Testthenewlybuiltbasedocker'></a>Test the newly built base docker
 
-The build script tags the newly built base docker with the username of the account in the user's local machine. Therefore, the developers may tests their new docker by using the `tao_deploy` command with the `--tag` option.
+Developers may tests their new docker by using the `tao_deploy` command.
 
 ```sh
-tao_deploy --tag $USER -- script args
+tao_deploy -- script args
 ```
 
 #### <a name='Updatethenewdocker'></a>Update the new docker
