@@ -29,7 +29,8 @@ def main(args=None):
     dir_name = os.path.dirname(args.output_path)
     os.makedirs(dir_name, exist_ok=True)
 
-    tmp_decrypted_model, _  = decode_etlt(args.model_path, args.key)
+    tmp_decrypted_model, backend  = decode_etlt(args.model_path, args.key)
+    print(f"Model is decrypted to it's original '{backend}' backend")
     shutil.copy(tmp_decrypted_model, args.output_path)
     print(f"Model decrypted at {args.output_path}")
 
