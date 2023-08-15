@@ -104,7 +104,7 @@ tao_deploy --gpus all --volume /path/to/data/on/host:/path/to/data/on/container 
 
 ### <a name='Updatingthebasedocker'></a>Updating the base docker
 
-There will be situations where developers would be required to update the third party dependancies to newer versions, or upgrade CUDA etc. In such a case, please follow the steps below:
+There will be situations where developers would be required to update the third party dependencies to newer versions, or upgrade CUDA etc. In such a case, please follow the steps below:
 
 #### <a name='Buildbasedocker'></a>Build base docker
 
