@@ -12,6 +12,7 @@
 		* [Test the newly built base docker](#Testthenewlybuiltbasedocker)
 		* [Update the new docker](#Updatethenewdocker)
 * [Building a release container](#Buildingareleasecontainer)
+* [Running TAO Deploy on Jetson devices](#JetsonDevices)
 * [Contribution Guidelines](#ContributionGuidelines)
 * [License](#License)
 
@@ -25,7 +26,7 @@
 
 TAO Toolkit is a Python package hosted on the NVIDIA Python Package Index. It interacts with lower-level TAO dockers available from the NVIDIA GPU Accelerated Container Registry (NGC). The TAO containers come pre-installed with all dependencies required for training. The output of the TAO workflow is a trained model that can be deployed for inference on NVIDIA devices using DeepStream, TensorRT and Triton.
 
-This repository contains the required implementation for the all the deep learning components and networks using the TensorRT backend. These routines are packaged as part of the TAO Toolkit TensorRT container in the Toolkit package. These source code here is compatible with TensorRT version <= 8.5.3
+This repository contains the required implementation for all the deep learning components and networks using the TensorRT backend. These routines are packaged as part of the TAO Toolkit TensorRT container in the Toolkit package. The source code here is compatible with TensorRT version <= 8.5.3
 
 ## <a name='GettingStarted'></a>Getting Started
 
@@ -104,7 +105,7 @@ tao_deploy --gpus all --volume /path/to/data/on/host:/path/to/data/on/container 
 
 ### <a name='Updatingthebasedocker'></a>Updating the base docker
 
-There will be situations where developers would be required to update the third party dependencies to newer versions, or upgrade CUDA etc. In such a case, please follow the steps below:
+There will be situations where developers would be required to update the third party dependencies to newer versions, or upgrade CUDA, etc. In such a case, please follow the steps below:
 
 #### <a name='Buildbasedocker'></a>Build base docker
 
@@ -154,6 +155,23 @@ cd $NV_TAO_DEPLOY_TOP/release/docker
 ```
 
 In order to build a new docker, please edit the `deploy.sh` file in `$NV_TAO_DEPLOY_TOP/release/docker` to update the patch version and re-run the steps above.
+
+## <a name='JetsonDevices'></a>Running TAO Deploy on Jetson devices
+
+The released TAO Deploy container is based on `x86` platform so it will not work on `aarch64` platforms. In order to run TAO Deploy on Jetson devices, please instantiate [TensorRT-L4T docker hosted on NGC](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-tensorrt) using below command. Note that this TensorRT version may not match with the version from the released TAO container.
+
+```sh
+sudo docker run -it --rm --net=host --runtime nvidia -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix nvcr.io/nvidia/l4t-tensorrt:xx
+```
+
+After the container is instantiated, run below steps to install the TAO Deploy wheel and corresponding dependencies on your system.
+
+```sh
+apt install libopenmpi-dev
+pip install nvidia_tao_deploy==5.0.0.423.dev0
+pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff-tao-encryption/0.1.7/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff/0.6.2/nvidia_eff-0.6.2-py38-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+```
 
 ## <a name='ContributionGuidelines'></a>Contribution Guidelines
 TAO Toolkit Deploy backend is not accepting contributions as part of the TAO 5.0 release, but will be open in the future.
