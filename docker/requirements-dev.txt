@@ -6,20 +6,20 @@ PyYAML>=5.1
 six>=1.12.0
 pynvml==11.0.0
 mpi4py>=3.0.3
-pycocotools-fix
+pycocotools>=2.0.7
 hydra-core==1.2.0 # DD compatible
 omegaconf==2.2.2 # DD compatible
-opencv-python
+opencv-python==4.8.0.76
 scikit-image==0.17.2
 scikit-learn==0.24.2
 scipy==1.5.4
 seaborn==0.7.1
-onnx
-onnxruntime
-protobuf==3.20.2
+onnx>=1.13.1
+onnxruntime>=1.13.1
+protobuf>=3.20.2
 pyclipper==1.1.0.post3
 shapely==1.8.2
-natsort
+natsort==8.4.0
 tqdm==4.64.0
 https://files.pythonhosted.org/packages/d1/c2/c14dd8884a5bc05ca07331b3d78a92812eb19e25a625a0b59af8b609a93f/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 https://files.pythonhosted.org/packages/cf/ec/47f770919111bcd7047e463389e7f763afbc6ae7b96cbd4be974342a5bb1/nvidia_eff-0.6.2-py38-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl

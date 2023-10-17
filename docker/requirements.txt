@@ -6,19 +6,19 @@ PyYAML>=5.1
 six>=1.12.0
 pynvml==11.0.0
 mpi4py>=3.0.3
-pycocotools-fix
+pycocotools==2.0.7
 hydra-core==1.2.0 # DD compatible
 omegaconf==2.2.2 # DD compatible
-opencv-python
+opencv-python==4.8.0.76
 scikit-image==0.17.2
 scikit-learn==0.24.2
 scipy==1.5.4
 seaborn==0.7.1
-onnx
-onnxruntime
-protobuf==3.20.2
+onnx>=1.13.1
+onnxruntime>=1.13.1
+protobuf>=3.20.2
 pyclipper==1.1.0.post3
 shapely==1.8.2
-natsort
+natsort==8.4.0
 tqdm==4.64.0
 requests>=2.31.0

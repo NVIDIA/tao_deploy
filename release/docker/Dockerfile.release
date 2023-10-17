@@ -1,5 +1,8 @@
 FROM nvcr.io/nvidia/tao/tao_toolkit:5.0.0-deploy-base
 
+# Removing libwebp6 due to CVE-2023-5217 
+RUN apt-get remove -y libwebp6
+
 # Installing the TAO Toolkit source code packages.
 WORKDIR /opt/nvidia
 COPY dist/*.whl /opt/nvidia/wheels/

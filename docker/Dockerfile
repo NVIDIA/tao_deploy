@@ -13,7 +13,7 @@ RUN pip install --upgrade pip
 # Copy requirement and install
 WORKDIR /workspace/
 COPY docker/requirements-dev.txt /workspace/
-RUN pip install nvidia-pyindex
+RUN pip install nvidia-pyindex cython
 RUN pip install -r requirements-dev.txt && \
     rm -rf requirements-dev.txt
 

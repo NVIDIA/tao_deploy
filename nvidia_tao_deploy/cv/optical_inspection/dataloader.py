@@ -39,7 +39,8 @@ class OpticalInspectionDataLoader(ABC):
             input_data_path=None,
             train=False,
             data_config=None,
-            dtype=np.float32):
+            dtype=np.float32,
+            split='inference'):
         """Initialize the Optical Inspection dataloader."""
         if not os.path.exists(csv_file):
             raise FileNotFoundError(f"Inference data csv file wasn't found at {csv_file}")
@@ -57,6 +58,7 @@ class OpticalInspectionDataLoader(ABC):
         self.batch_size = data_config.batch_size
         self.dtype = dtype
         self.n_batches = math.ceil(float(len(self.merged)) / self.batch_size)
+        self.split = split
         assert self.n_batches > 0, (
             f"There should atleast be 1 batch to load. {self.n_batches}"
         )
@@ -83,12 +85,20 @@ class OpticalInspectionDataLoader(ABC):
             start_idx = self.batch_size * self.n
             unit_batch = []
             golden_batch = []
+            label_batch = []
             end_idx = min(start_idx + self.batch_size, len(self.merged))
             for idx in range(start_idx, end_idx):
-                unit_array, golden_array = self.__getitem__(idx)
+                if self.split == 'evaluate':
+                    unit_array, golden_array, label = self.__getitem__(idx)
+                    label_batch.append(label)
+                else:
+                    unit_array, golden_array = self.__getitem__(idx)
                 unit_batch.append(unit_array)
                 golden_batch.append(golden_array)
             self.n += 1
+            if self.split == 'evaluate':
+                return np.asarray(unit_batch, dtype=unit_array.dtype), np.asarray(golden_batch, dtype=golden_array.dtype), np.asarray(label_batch, dtype=label.dtype)
+
             return np.asarray(unit_batch, dtype=unit_array.dtype), np.asarray(golden_batch, dtype=golden_array.dtype)
         raise StopIteration
 
@@ -156,6 +166,11 @@ class OpticalInspectionDataLoader(ABC):
         )
         concatenated_unit_sample = self.concatenate_image(preprocessed_image_0)
         concatenated_golden_sample = self.concatenate_image(preprocessed_image_1)
+
+        if self.split == 'evaluate':
+            label = np.array([int(image_tuple['label'] != 'PASS')])
+            return concatenated_unit_sample, concatenated_golden_sample, label
+
         return concatenated_unit_sample, concatenated_golden_sample
 
     def concatenate_image(self, preprocessed_image_array):

@@ -16,6 +16,7 @@
 
 import os
 import setuptools
+import sys
 
 from release.python.utils import utils
 
@@ -23,6 +24,8 @@ version_locals = utils.get_version_details()
 PACKAGE_LIST = [
     "nvidia_tao_deploy"
 ]
+
+__python_version__ = "=={}.{}.*".format(sys.version_info.major, sys.version_info.minor)
 
 
 # Getting dependencies.
@@ -45,7 +48,7 @@ setuptools.setup(
     author='NVIDIA Corporation',
     classifiers=[
         'Environment :: Console',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: Other/Proprietary License',
         'Natural Language :: English',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3.6',
@@ -60,11 +63,12 @@ setuptools.setup(
         '': ['*.pyc', "*.yaml", "*.so", '*.pdf']
     },
     include_package_data=True,
-    python_requires=">=3.6.*",
+    python_requires=__python_version__,
     install_requires=get_requirements(),
     zip_safe=False,
     entry_points={
         'console_scripts': [
+            'visual_changenet=nvidia_tao_deploy.cv.visual_changenet.entrypoint.visual_changenet:main',
             'classification_pyt=nvidia_tao_deploy.cv.classification_pyt.entrypoint.classification_pyt:main',
             'classification_tf1=nvidia_tao_deploy.cv.classification_tf1.entrypoint.classification_tf1:main',
             'classification_tf2=nvidia_tao_deploy.cv.classification_tf2.entrypoint.classification_tf2:main',
