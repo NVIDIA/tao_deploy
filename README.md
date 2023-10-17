@@ -169,8 +169,8 @@ After the container is instantiated, run below steps to install the TAO Deploy w
 ```sh
 apt install libopenmpi-dev
 pip install nvidia_tao_deploy==5.0.0.423.dev0
-pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff-tao-encryption/0.1.7/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
-pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff/0.6.2/nvidia_eff-0.6.2-py38-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+pip install https://files.pythonhosted.org/packages/f7/7a/ac2e37588fe552b49d8807215b7de224eef60a495391fdacc5fa13732d11/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+pip install https://files.pythonhosted.org/packages/0d/05/6caf40aefc7ac44708b2dcd5403870181acc1ecdd93fa822370d10cc49f3/nvidia_eff-0.6.2-py38-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
 ```
 
 ## <a name='ContributionGuidelines'></a>Contribution Guidelines
