@@ -24,7 +24,7 @@ class ModelConfig:
     """Model config."""
 
     backbone: str = "deformable_resnet18"
-    pretrained: bool = True
+    pretrained: bool = False
     in_channels: int = 3
     neck: str = "FPN"
     inner_channels: int = 256
@@ -32,7 +32,12 @@ class ModelConfig:
     out_channels: int = 2
     k: int = 50
     load_pruned_graph: bool = MISSING
-    pruned_graph_path: str = MISSING
+    pruned_graph_path: Optional[str] = None
+    pretrained_model_path: Optional[str] = None
+    enlarge_feature_map_size: bool = False
+    activation_checkpoint: bool = False
+    quant: bool = False
+    fuse_qkv_proj: bool = True
 
 
 @dataclass
@@ -42,6 +47,8 @@ class Optimargs:
     lr: float = 0.001
     weight_decay: float = 0.0
     amsgrad: bool = True
+    momentum: float = 0.0
+    eps: float = 1e-8
 
 
 @dataclass
@@ -60,6 +67,7 @@ class Loss:
     alpha: int = 5
     beta: int = 10
     ohem_ratio: int = 3
+    eps: float = 1e-6
 
 
 @dataclass
@@ -198,9 +206,7 @@ class TrainConfig:
     """Train experiment config."""
 
     results_dir: Optional[str] = None
-    pretrained_model_path: str = ""
-    resume_training_checkpoint_path: str = ""
-    encryption_key: str = MISSING
+    resume_training_checkpoint_path: Optional[str] = None
     num_epochs: int = 50
     checkpoint_interval: int = 1
     validation_interval: int = 1
@@ -211,6 +217,11 @@ class TrainConfig:
     loss: Loss = Loss()
     optimizer: Optimizer = Optimizer()
     lr_scheduler: LRScheduler = LRScheduler()
+    precision: str = "fp32"
+    distributed_strategy: str = "ddp"
+    is_dry_run: bool = False
+    model_ema: bool = False
+    model_ema_decay: float = 0.9999
 
 
 @dataclass
@@ -250,8 +261,10 @@ class PruneConfig:
     results_dir: Optional[str] = None
     checkpoint: str = MISSING
     gpu_id: int = 0
-    batch_size: int = 1
-    pruning_thresh: float = MISSING
+    ch_sparsity: float = 0.1
+    round_to: int = 32
+    p: int = 2
+    verbose: bool = False
 
 
 @dataclass
@@ -260,10 +273,12 @@ class ExportConfig:
 
     results_dir: Optional[str] = None
     checkpoint: str = MISSING
+    onnx_file: Optional[str] = None
     gpu_id: int = 0
     width: int = MISSING
     height: int = MISSING
     opset_version: int = 11
+    verbose: bool = False
 
 
 @dataclass
@@ -286,6 +301,7 @@ class TrtConfig:
     opt_batch_size: int = 1
     max_batch_size: int = 1
     calibration: CalibrationConfig = CalibrationConfig()
+    layers_precision: Optional[List[str]] = None
 
 
 @dataclass
@@ -314,7 +330,6 @@ class ExperimentConfig:
     gen_trt_engine: GenTrtEngineExpConfig = GenTrtEngineExpConfig()
     inference: InferenceConfig = InferenceConfig()
     prune: PruneConfig = PruneConfig()
-    encryption_key: str = MISSING
     name: str = MISSING
     num_gpus: int = 1
     results_dir: str = "/results"

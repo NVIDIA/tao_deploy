@@ -66,7 +66,7 @@ def main(cfg: ExperimentConfig) -> None:
                 mapping_dict[subdir] = idx
 
     # Load hparams
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
     top_k = cfg.evaluate.topk
     image_mean = [x / 255 for x in cfg.dataset.img_norm_cfg.mean]
     img_std = [x / 255 for x in cfg.dataset.img_norm_cfg.std]
@@ -101,8 +101,8 @@ def main(cfg: ExperimentConfig) -> None:
     pred_labels = np.array(pred_labels)
 
     # Metric calculation
-    target_names = np.array([c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])])
-    target_labels = np.array([c[1] for c in sorted(mapping_dict.items(), key=lambda x:x[1])])
+    target_names = np.array([c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])])
+    target_labels = np.array([c[1] for c in sorted(mapping_dict.items(), key=lambda x: x[1])])
     if len(target_labels) == 2:
         # If there are only two classes, sklearn perceive the problem as binary classification
         # and requires predictions to be in (num_samples, ) rather than (num_samples, num_classes)

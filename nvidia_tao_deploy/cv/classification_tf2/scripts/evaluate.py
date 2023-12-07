@@ -68,7 +68,7 @@ def run_evaluation(cfg: ExperimentConfig) -> None:
                 mapping_dict[subdir] = idx
 
     # Load hparams
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
     top_k = cfg.evaluate.top_k
     mode = cfg.dataset.preprocess_mode
     interpolation_method = cfg.model.resize_interpolation_method
@@ -108,8 +108,8 @@ def run_evaluation(cfg: ExperimentConfig) -> None:
     pred_labels = np.array(pred_labels)
 
     # Metric calculation
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
-    target_labels = [c[1] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
+    target_labels = [c[1] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
 
     if len(target_labels) == 2:
         # If there are only two classes, sklearn perceive the problem as binary classification

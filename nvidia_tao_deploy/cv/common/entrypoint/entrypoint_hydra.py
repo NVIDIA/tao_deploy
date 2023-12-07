@@ -14,6 +14,7 @@
 
 """TAO Deploy (TF2) command line wrapper to invoke CLI scripts."""
 
+import logging
 import importlib
 import os
 import pkgutil
@@ -25,6 +26,17 @@ import pycuda.driver as cuda
 
 from nvidia_tao_deploy.cv.common.telemetry.nvml_utils import get_device_details
 from nvidia_tao_deploy.cv.common.telemetry.telemetry import send_telemetry_data
+
+RELEASE = True
+# Configure the logger.
+verbosity = "INFO"
+if not RELEASE:
+    verbosity = "DEBUG"
+logging.basicConfig(
+    format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s: %(message)s',
+    level=verbosity
+)
+logger = logging.getLogger(__name__)
 
 
 def get_subtasks(package):
@@ -182,7 +194,7 @@ def launch(parser,
 
     unknown_args_string = " ".join(unknown_args)
     task_command = f"python {script} {scripts_args} {unknown_args_string}"
-    print(task_command)
+    logger.debug(task_command)
     env_variables = set_gpu_info_single_node(gpu_ids)
 
     run_command = f"bash -c \'{env_variables} {task_command}\'"
@@ -196,11 +208,16 @@ def launch(parser,
             check=True
         )
     except (KeyboardInterrupt, SystemExit):
-        print("Command was interrupted.")
+        logger.info("Command was interrupted.")
     except subprocess.CalledProcessError as e:
         process_passed = False
         if e.output is not None:
-            print(f"TAO Deploy task: {args['subtask']} failed with error:\n{e.output}")
+            logger.info(
+                "TAO Deploy task: {} failed with error:\n{}".format(
+                    args['subtask'],
+                    e.output
+                )
+            )
 
     end = time()
     time_lapsed = end - start
@@ -209,7 +226,7 @@ def launch(parser,
         gpu_data = []
         for device in get_device_details():
             gpu_data.append(device.get_config())
-        print("Sending telemetry data.")
+        logger.info("Sending telemetry data.")
         send_telemetry_data(
             network,
             args['subtask'],
@@ -219,12 +236,12 @@ def launch(parser,
             pass_status=process_passed
         )
     except Exception as e:
-        print("Telemetry data couldn't be sent, but the command ran successfully.")
-        print(f"[WARNING]: {e}")
+        logger.warning("Telemetry data couldn't be sent, but the command ran successfully.")
+        logger.warning("{}".format(e))
         pass
 
     if not process_passed:
-        print("Execution status: FAIL")
+        logger.info("Execution status: FAIL")
         sys.exit(1)  # returning non zero return code from the process.
 
-    print("Execution status: PASS")
+    logger.info("Execution status: PASS")

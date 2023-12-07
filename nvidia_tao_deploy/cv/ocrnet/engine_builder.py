@@ -22,6 +22,8 @@ import onnx
 import tensorrt as trt
 
 from nvidia_tao_deploy.engine.builder import EngineBuilder
+from nvidia_tao_deploy.engine.calibrator import EngineCalibrator
+from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
                     level="INFO")
@@ -115,7 +117,7 @@ class OCRNetEngineBuilder(EngineBuilder):
                 self.config.add_optimization_profile(opt_profile)
         else:
             logger.info("Parsing UFF model")
-            raise NotImplementedError("UFF for LPRNet is not supported")
+            raise NotImplementedError("UFF for OCRNet is not supported")
 
     def create_engine(self, engine_path, precision,
                       calib_input=None, calib_cache=None, calib_num_images=5000,
@@ -146,9 +148,61 @@ class OCRNetEngineBuilder(EngineBuilder):
             else:
                 self.config.set_flag(trt.BuilderFlag.FP16)
         elif precision == "int8":
-            raise NotImplementedError("INT8 is not supported for LPRNet!")
+            if not self.builder.platform_has_fast_int8:
+                logger.warning("INT8 is not supported natively on this platform/device")
+            elif self._is_qat:
+                pass
+            else:
+                if self.builder.platform_has_fast_fp16 and not self._strict_type:
+                    # Also enable fp16, as some layers may be even more efficient in fp16 than int8
+                    self.config.set_flag(trt.BuilderFlag.FP16)
+                else:
+                    self.config.set_flag(trt.BuilderFlag.STRICT_TYPES)
+                self.config.set_flag(trt.BuilderFlag.INT8)
+                # Set ImageBatcher based calibrator
+                inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
+                self.set_calibrator(inputs=inputs,
+                                    calib_cache=calib_cache,
+                                    calib_input=calib_input,
+                                    calib_num_images=calib_num_images,
+                                    calib_batch_size=calib_batch_size,
+                                    calib_data_file=calib_data_file)
 
+        self._logger_info_IBuilderConfig()
         with self.builder.build_engine(self.network, self.config) as engine, \
                 open(engine_path, "wb") as f:
             logger.debug("Serializing engine to file: %s", engine_path)
             f.write(engine.serialize())
+
+    def set_calibrator(self,
+                       inputs=None,
+                       calib_cache=None,
+                       calib_input=None,
+                       calib_num_images=5000,
+                       calib_batch_size=8,
+                       calib_data_file=None,
+                       image_mean=None):
+        """Simple function to set an int8 calibrator. (Default is ImageBatcher based)
+
+        Args:
+            inputs (list): Inputs to the network
+            calib_input (str): The path to a directory holding the calibration images.
+            calib_cache (str): The path where to write the calibration cache to,
+                         or if it already exists, load it from.
+            calib_num_images (int): The maximum number of images to use for calibration.
+            calib_batch_size (int): The batch size to use for the calibration process.
+
+        Returns:
+            No explicit returns.
+        """
+        logger.info("Calibrating using ImageBatcher")
+
+        self.config.int8_calibrator = EngineCalibrator(calib_cache)
+        if not os.path.exists(calib_cache):
+            calib_shape = [calib_batch_size] + list(inputs[0].shape[1:])
+            calib_dtype = trt.nptype(inputs[0].dtype)
+            self.config.int8_calibrator.set_image_batcher(
+                ImageBatcher(calib_input, calib_shape, calib_dtype,
+                             max_num_images=calib_num_images,
+                             exact_batches=True,
+                             preprocessor="OCRNet"))

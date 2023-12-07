@@ -72,6 +72,11 @@ def main(cfg: ExperimentConfig) -> None:
         input_batch_size = batch_size
         is_dynamic = False
 
+    # For ViT-L, override workspace to be larger.
+    if cfg.model.backbone == "vit_large_dinov2" and workspace_size < 24080:
+        logger.warning("Overriding workspace_size from {} to 20480 due to ViT's model size".format(workspace_size))
+        workspace_size = 20480
+
     # TODO: Remove this when we upgrade to DLFW 23.04+
     trt_version_number = NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + NV_TENSORRT_PATCH
     if data_type.lower() == "fp16" and trt_version_number < 8600:
@@ -105,7 +110,7 @@ def main(cfg: ExperimentConfig) -> None:
             calib_batch_size=cfg.gen_trt_engine.tensorrt.calibration.cal_batch_size
         )
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 if __name__ == '__main__':

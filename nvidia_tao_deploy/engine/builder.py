@@ -25,6 +25,13 @@ from nvidia_tao_deploy.engine.calibrator import EngineCalibrator
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
 
+precision_mapping = {
+    'fp32': trt.float32,
+    'fp16': trt.float16,
+    'int32': trt.int32,
+    'int8': trt.int8,
+}
+
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
                     level="INFO")
 logger = logging.getLogger(__name__)
@@ -209,7 +216,8 @@ class EngineBuilder(ABC):
 
     def create_engine(self, engine_path, precision,
                       calib_input=None, calib_cache=None, calib_num_images=5000,
-                      calib_batch_size=8, calib_data_file=None, calib_json_file=None):
+                      calib_batch_size=8, calib_data_file=None, calib_json_file=None,
+                      layers_precision=None, profilingVerbosity="detailed"):
         """Build the TensorRT engine and serialize it to disk.
 
         Args:
@@ -283,6 +291,14 @@ class EngineBuilder(ABC):
                                     calib_num_images=calib_num_images,
                                     calib_batch_size=calib_batch_size,
                                     calib_data_file=calib_data_file)
+
+            if layers_precision is not None and len(layers_precision) > 0:
+                # self.config.set_flag(trt.BuilderFlag.OBEY_PRECISION_CONSTRAINTS)
+                self.config.set_flag(trt.BuilderFlag.PREFER_PRECISION_CONSTRAINTS)
+                self.setLayerPrecisions(layers_precision)
+
+        if profilingVerbosity == "detailed":
+            self.config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
 
         self._logger_info_IBuilderConfig()
         with self.builder.build_engine(self.network, self.config) as engine, \
@@ -360,3 +376,77 @@ class EngineBuilder(ABC):
         if set(tensors_in_dict) != set(tensors_found):
             logger.info("Tensors in scale dictionary but not in network: %s",
                         set(tensors_in_dict) - set(tensors_found))
+
+    def setLayerPrecisions(self, layerPrecisions):
+        """Set the layer precision for specified layers.
+
+        This function control per-layer precision constraints. Effective only when
+        "OBEY_PRECISION_CONSTRAINTS" or "PREFER_PRECISION_CONSTRAINTS" is set by builder config.
+        the layer name is identical to the node name from your ONNX model.
+
+        Example:
+        if you want to set some layers precision to "fp32" when you build TensorRT INT8 engine:
+
+            builder = EngineBuilder()
+            builder.create_network()
+            layerPrecisions = {'/backbone/conv1':'fp32', '/backbone/conv2':'fp32', '/backbone/conv3':'fp32'}
+            builder.setLayerPrecisions(layerPrecisions)
+
+        Besides, "*" can be used as a layerName to specify the default precision for all the unspecified layers.
+        if you only need to set a few layers precision to "int8" and all the other layers to "fp32", you can do like:
+
+            builder = EngineBuilder()
+            builder.create_network()
+            layerPrecisions = {'*':'fp32', '/backbone/conv1':'int8', '/backbone/conv2':'int8', '/backbone/conv3':'int8'}
+            builder.setLayerPrecisions(layerPrecisions)
+
+        Args:
+            layerPrecisions (dict): Dictionary mapping layers to precision. for example: {"layername":"dtype",...}, "dtype" should be in [fp32","fp16","int32","int8"]
+
+        Returns:
+            No explicit returns.
+        """
+        hasGlobalPrecision = "*" in layerPrecisions.keys()
+        globalPrecision = precision_mapping[layerPrecisions["*"]] if hasGlobalPrecision else trt.float32
+        hasLayerPrecisionSkipped = False
+        for layer in self.network:
+
+            layerName = layer.name
+            if layer.name in layerPrecisions.keys():
+                layer.precision = precision_mapping[layerPrecisions[layer.name]]
+                logger.info("Setting precision for layer {} to {}.".format(layerName, layer.precision))
+            elif hasGlobalPrecision:
+                # We should not set the layer precision if its default precision is INT32 or Bool.
+                if layer.precision in (trt.int32, trt.bool):
+                    hasLayerPrecisionSkipped = True
+                    logger.info("Skipped setting precision for layer {} because the \
+                                default layer precision is INT32 or Bool.".format(layerName))
+                    continue
+
+                #  We should not set the constant layer precision if its weights are in INT32.
+                if layer.type == trt.LayerType.CONSTANT:
+                    hasLayerPrecisionSkipped = True
+                    logger.info("Skipped setting precision for layer {} because this \
+                                constant layer has INT32 weights.".format(layerName))
+                    continue
+
+                #  We should not set the layer precision if the layer operates on a shape tensor.
+                if layer.num_inputs >= 1 and layer.get_input(0).is_shape_tensor:
+
+                    hasLayerPrecisionSkipped = True
+                    logger.info("Skipped setting precision for layer {} because this layer \
+                                operates on a shape tensor.".format(layerName))
+                    continue
+
+                if (layer.num_inputs >= 1 and layer.get_input(0).dtype == trt.int32 and layer.num_outputs >= 1 and layer.get_output(0).dtype == trt.int32):
+
+                    hasLayerPrecisionSkipped = True
+                    logger.info("Skipped setting precision for layer {} because this \
+                                layer has INT32 input and output.".format(layerName))
+                    continue
+
+                #  All heuristics passed. Set the layer precision.
+                layer.precision = globalPrecision
+
+        if hasLayerPrecisionSkipped:
+            logger.info("Skipped setting precisions for some layers. Check verbose logs for more details.")

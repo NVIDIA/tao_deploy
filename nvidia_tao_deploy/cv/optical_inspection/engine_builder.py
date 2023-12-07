@@ -130,7 +130,8 @@ class OpticalInpsectionEngineBuilder(EngineBuilder):
                         opt=real_shape_opt,
                         max=real_shape_max
                     )
-                    self.config.add_optimization_profile(opt_profile)
+                self.config.add_optimization_profile(opt_profile)
+                self.config.set_calibration_profile(opt_profile)
         else:
             logger.info("Parsing UFF model")
             raise NotImplementedError("UFF for Optical Inspection is not supported")
@@ -167,6 +168,7 @@ class OpticalInpsectionEngineBuilder(EngineBuilder):
             raise NotImplementedError("INT8 is not supported for Optical Inspection!")
 
         print(f"Engine path: {engine_path}")
+        self._logger_info_IBuilderConfig()
         with self.builder.build_engine(self.network, self.config) as engine, \
                 open(engine_path, "wb") as f:
             logger.debug("Serializing engine to file: %s", engine_path)

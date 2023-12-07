@@ -14,10 +14,6 @@
 
 """OCRNet convert etlt model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
 import tempfile
@@ -55,6 +51,18 @@ def main(cfg: ExperimentConfig) -> None:
     opt_batch_size = trt_cfg.tensorrt['opt_batch_size']
     max_batch_size = trt_cfg.tensorrt['max_batch_size']
 
+    # INT8 parameters:
+    if data_type == "int8":
+        calib_input = trt_cfg.tensorrt.calibration.cal_image_dir[0]
+        calib_batch_size = trt_cfg.tensorrt.calibration.cal_batch_size
+        calib_num_batches = trt_cfg.tensorrt.calibration.cal_batches
+        calib_cache = trt_cfg.tensorrt.calibration.cal_cache_file
+    else:
+        calib_input = None
+        calib_batch_size = 0
+        calib_num_batches = 0
+        calib_cache = None
+
     if engine_file is None:
         engine_handle, temp_engine_path = tempfile.mkstemp()
         os.close(engine_handle)
@@ -70,7 +78,11 @@ def main(cfg: ExperimentConfig) -> None:
     builder.create_network(tmp_onnx_file, file_format)
     builder.create_engine(
         output_engine_path,
-        data_type)
+        data_type,
+        calib_input=calib_input,
+        calib_cache=calib_cache,
+        calib_batch_size=calib_batch_size,
+        calib_num_images=calib_batch_size * calib_num_batches)
 
     logging.info("Engine generation finished successfully.")
 

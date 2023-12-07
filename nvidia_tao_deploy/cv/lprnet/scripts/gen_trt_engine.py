@@ -14,10 +14,6 @@
 
 """LPRNet convert etlt/onnx model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 import os
@@ -62,7 +58,7 @@ def main(args):
             output_engine_path,
             args.data_type)
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

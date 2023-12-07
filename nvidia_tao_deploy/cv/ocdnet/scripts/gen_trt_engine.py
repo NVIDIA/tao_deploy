@@ -14,10 +14,6 @@
 
 """OCDNet convert model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
 
@@ -64,7 +60,19 @@ def main(cfg: ExperimentConfig) -> None:
     cal_cache_file = cfg['gen_trt_engine']['tensorrt']['calibration']['cal_cache_file']
     cal_batch_size = cfg['gen_trt_engine']['tensorrt']['calibration']['cal_batch_size']
     cal_num_batches = cfg['gen_trt_engine']['tensorrt']['calibration']['cal_num_batches']
+    layers_precision = cfg['gen_trt_engine']['tensorrt']['layers_precision']
 
+    layers_precision_dict = {}
+    if layers_precision is not None:
+        for layer in layers_precision:
+            idx = layer.rfind(':')
+            if idx == -1:
+                raise IndexError(
+                    f'Layer {layer} precision not set'
+                )
+            layer_name = layer[:idx]
+            precision = layer[idx + 1:]
+            layers_precision_dict[layer_name] = precision
     if engine_file:
         if data_type == "int8":
             if not os.path.isdir(cal_image_dir):
@@ -104,7 +112,8 @@ def main(cfg: ExperimentConfig) -> None:
             calib_input=cal_image_dir,
             calib_cache=cal_cache_file,
             calib_num_images=cal_batch_size * cal_num_batches,
-            calib_batch_size=cal_batch_size)
+            calib_batch_size=cal_batch_size,
+            layers_precision=layers_precision_dict)
 
     logging.info("Generate TensorRT engine and calibration cache file successfully.")
 

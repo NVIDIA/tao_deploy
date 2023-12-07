@@ -68,7 +68,7 @@ setuptools.setup(
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            'visual_changenet=nvidia_tao_deploy.cv.visual_changenet.entrypoint.visual_changenet:main',
+            'centerpose=nvidia_tao_deploy.cv.centerpose.entrypoint.centerpose:main',
             'classification_pyt=nvidia_tao_deploy.cv.classification_pyt.entrypoint.classification_pyt:main',
             'classification_tf1=nvidia_tao_deploy.cv.classification_tf1.entrypoint.classification_tf1:main',
             'classification_tf2=nvidia_tao_deploy.cv.classification_tf2.entrypoint.classification_tf2:main',
@@ -90,6 +90,7 @@ setuptools.setup(
             'ssd=nvidia_tao_deploy.cv.ssd.entrypoint.ssd:main',
             'segformer=nvidia_tao_deploy.cv.segformer.entrypoint.segformer:main',
             'unet=nvidia_tao_deploy.cv.unet.entrypoint.unet:main',
+            'visual_changenet=nvidia_tao_deploy.cv.visual_changenet.entrypoint.visual_changenet:main',
             'yolo_v3=nvidia_tao_deploy.cv.yolo_v3.entrypoint.yolo_v3:main',
             'yolo_v4=nvidia_tao_deploy.cv.yolo_v4.entrypoint.yolo_v4:main',
             'yolo_v4_tiny=nvidia_tao_deploy.cv.yolo_v4.entrypoint.yolo_v4:main',

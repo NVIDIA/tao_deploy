@@ -1,25 +1,31 @@
 FROM nvcr.io/nvidia/tao/tao_toolkit:5.0.0-deploy-base
 
-# Removing libwebp6 due to CVE-2023-5217 
-RUN apt-get remove -y libwebp6
-
 # Installing the TAO Toolkit source code packages.
 WORKDIR /opt/nvidia
 COPY dist/*.whl /opt/nvidia/wheels/
-RUN python -m pip install pip --upgrade \
-    && cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
+RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
     && rm *.whl
+
+# NGC Security scan related fixes.
+# Low-level packages in apt are updated to resolve published security vulnerabilities ASAP
+# We retrieve these updates and upgrade the critical/high vulnerability ones
+RUN apt-get update && \
+    apt --only-upgrade install linux-libc-dev -y && \
+    apt --only-upgrade install curl -y && \
+    apt --only-upgrade install libc-bin -y && \
+    apt --only-upgrade install libc6-dev -y && \
+    apt --only-upgrade install libc6 -y && \
+    apt --only-upgrade install libc-dev-bin -y && \
+    apt --only-upgrade install libcurl3-gnutls -y && \
+    apt --only-upgrade install libcurl4 -y
 
 RUN rm -rf /opt/nvidia/entrypoint.d/*.txt
 COPY release/docker/entrypoint.d/* /opt/nvidia/entrypoint.d/
 
-# Fixes for 4.0.0 RC security scan
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libssl-dev libssl1.1 openssl
 RUN python -m pip uninstall graphviz -y
-RUN python -m pip install --upgrade onnx scikit-learn pillow
 
 ENV NVIDIA_PRODUCT_NAME "TAO Toolkit"
-ENV TAO_TOOLKIT_VERSION="4.0.0"
+ENV TAO_TOOLKIT_VERSION="5.2.0"
 ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
 ENV TAO_TELEMETRY_SERVER="https://sqa-telemetry.metropolis.nvidia.com:443/api/v1/telemetry"
 

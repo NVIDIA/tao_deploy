@@ -27,7 +27,7 @@ from nvidia_tao_deploy.cv.ocrnet.dataloader import OCRNetLoader
 from nvidia_tao_deploy.cv.ocrnet.inferencer import OCRNetInferencer
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.ocrnet.config.default_config import ExperimentConfig
-from nvidia_tao_deploy.cv.ocrnet.utils import decode_ctc
+from nvidia_tao_deploy.cv.ocrnet.utils import decode_ctc, decode_attn
 
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -51,12 +51,19 @@ def main(cfg: ExperimentConfig) -> None:
     img_width = cfg.evaluate.input_width
     img_height = cfg.evaluate.input_height
     img_channel = cfg.model.input_channel
+    prediction_type = cfg.model.prediction
     shape = [img_channel, img_height, img_width]
 
     ocrnet_engine = OCRNetInferencer(engine_path=engine_file,
                                      batch_size=batch_size)
 
-    character_list = ["CTCBlank"]
+    if prediction_type == "CTC":
+        character_list = ["CTCBlank"]
+    elif prediction_type == "Attn":
+        character_list = ["[GO]", "[s]"]
+    else:
+        raise ValueError(f"Unsupported prediction type: {prediction_type}")
+
     with open(character_list_file, "r", encoding="utf-8") as f:
         for ch in f.readlines():
             ch = ch.strip()
@@ -72,10 +79,13 @@ def main(cfg: ExperimentConfig) -> None:
     acc_cnt = 0
     for imgs, labels in tqdm(inf_dl):
         y_preds = ocrnet_engine.infer(imgs)
-        output_ids, output_probs, _ = y_preds
+        output_probs, output_ids = y_preds
         total_cnt += len(output_ids)
         for output_id, output_prob, label in zip(output_ids, output_probs, labels):
-            text, _ = decode_ctc(output_id, output_prob, character_list=character_list)
+            if prediction_type == "CTC":
+                text, _ = decode_ctc(output_id, output_prob, character_list=character_list)
+            else:
+                text, _ = decode_attn(output_id, output_prob, character_list=character_list)
             if text == label:
                 acc_cnt += 1
 

@@ -74,7 +74,7 @@ def main(cfg: ExperimentConfig) -> None:
         data_type,
     )
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 if __name__ == '__main__':

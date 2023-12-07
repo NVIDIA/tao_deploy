@@ -104,7 +104,7 @@ def main(cfg: ExperimentConfig) -> None:
             calib_batch_size=cfg.gen_trt_engine.tensorrt.calibration.cal_batch_size
         )
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 if __name__ == '__main__':

@@ -101,7 +101,7 @@ def main(cfg: ExperimentConfig) -> None:
                 mapping_dict[subdir] = idx
 
     # Load hparams
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
     top_k = cfg.evaluate.topk
     image_mean = cfg.dataset.pixel_mean
     img_std = cfg.dataset.pixel_std
@@ -147,8 +147,8 @@ def main(cfg: ExperimentConfig) -> None:
     pred_labels = np.array(pred_labels)
 
     # Metric calculation
-    target_names = np.array([c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])])
-    target_labels = np.array([c[1] for c in sorted(mapping_dict.items(), key=lambda x:x[1])])
+    target_names = np.array([c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])])
+    target_labels = np.array([c[1] for c in sorted(mapping_dict.items(), key=lambda x: x[1])])
 
     # get the average of class accuracies:
     scores = average_topk_accuracy_per_class(gt_labels, pred_labels, k=top_k)

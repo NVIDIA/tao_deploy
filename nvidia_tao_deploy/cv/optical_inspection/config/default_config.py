@@ -117,6 +117,7 @@ class OIEvalExpConfig:
     """Evaluation experiment config."""
 
     checkpoint: str = MISSING
+    trt_engine: str = MISSING
     gpu_id: int = 0
     batch_size: int = 1
     results_dir: Optional[str] = None

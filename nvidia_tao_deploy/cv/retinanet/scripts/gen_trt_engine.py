@@ -66,7 +66,7 @@ def main(args):
             calib_batch_size=args.batch_size,
             calib_json_file=args.cal_json_file)
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

@@ -58,24 +58,21 @@ class OpticalInspectionInferencer(TRTInferencer):
             self.height = self._input_shape[0][0]
             self.width = self._input_shape[0][1]
 
-        # TODO: vpraveen. Temporarily disabling dynamic batch size profiling
-        # till we figure out how to handle multiple inputs and fixing the
-        # export routine in the pytorch container.
         # set binding_shape for dynamic input
-        # for binding in range(self.engine.num_bindings):
-        #     if self.engine.binding_is_input(binding):
-        #         binding_id = self.engine.get_binding_index(str(binding))
-        #         if (input_shape is not None) or (batch_size is not None):
-        #             self.context = self.engine.create_execution_context()
-        #             if input_shape is not None:
-        #                 for idx, _input_shape in enumerate(input_shape):
-        #                     self.context.set_binding_shape(binding_id, input_shape[idx])
-        #                     self.max_batch_size = input_shape[idx][0]
-        #             else:
-        #                 for idx, _input_shape in enumerate(self._input_shape):
-        #                     self.context.set_binding_shape(idx, [batch_size] + list(_input_shape))
-        #                     self.max_batch_size = batch_size
-        #     self.execute_v2 = True
+        for binding in range(self.engine.num_bindings):
+            if self.engine.binding_is_input(binding):
+                binding_id = self.engine.get_binding_index(str(binding))
+                if (input_shape is not None) or (batch_size is not None):
+                    self.context = self.engine.create_execution_context()
+                    if input_shape is not None:
+                        for idx, _input_shape in enumerate(input_shape):
+                            self.context.set_binding_shape(binding_id, _input_shape[idx])
+                            self.max_batch_size = _input_shape[idx][0]
+                    else:
+                        for idx, _input_shape in enumerate(self._input_shape):
+                            self.context.set_binding_shape(idx, [batch_size] + list(_input_shape))
+                            self.max_batch_size = batch_size
+            self.execute_v2 = True
 
         # This allocates memory for network inputs/outputs on both CPU and GPU
         self.inputs, self.outputs, self.bindings, self.stream = allocate_buffers(self.engine,

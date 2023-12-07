@@ -8,7 +8,7 @@ ENV_SET=$NV_TAO_DEPLOY_TOP/scripts/envsetup.sh
 REGISTRY="nvcr.io"
 TENSORRT_VERSION="8.5.3.1"
 CUDA_VERSION=12.0
-TAO_VERSION="5.0"
+TAO_VERSION="5.2.0"
 REPOSITORY="nvidia/tao-toolkit-deploy"
 BUILD_ID="01"
 tag="v${TAO_VERSION}-trt${TENSORRT_VERSION}-${BUILD_ID}-dev-cuda${CUDA_VERSION}"
@@ -18,7 +18,7 @@ source $ENV_SET
 
 # Build parameters.
 BUILD_DOCKER="0"
-BUILD_WHEELS="0"
+BUILD_WHEEL="0"
 PUSH_DOCKER="0"
 FORCE="0"
 

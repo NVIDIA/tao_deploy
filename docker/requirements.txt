@@ -2,6 +2,7 @@ absl-py>=0.7.1
 matplotlib>=3.0.3
 h5py==3.7.0
 Pillow>=8.1.0,<9.0.0 # TF1 compatible
+pyrr==0.10.3
 PyYAML>=5.1
 six>=1.12.0
 pynvml==11.0.0
@@ -10,14 +11,13 @@ pycocotools==2.0.7
 hydra-core==1.2.0 # DD compatible
 omegaconf==2.2.2 # DD compatible
 opencv-python==4.8.0.76
-scikit-image==0.17.2
-scikit-learn==0.24.2
-scipy==1.5.4
+scipy==1.11.3
+scikit-image==0.19.3
 seaborn==0.7.1
 onnx>=1.13.1
-onnxruntime>=1.13.1
-protobuf>=3.20.2
-pyclipper==1.1.0.post3
+onnxruntime>=1.13.1, <=1.15.1
+protobuf==3.20.2
+pyclipper==1.3.0.post5
 shapely==1.8.2
 natsort==8.4.0
 tqdm==4.64.0

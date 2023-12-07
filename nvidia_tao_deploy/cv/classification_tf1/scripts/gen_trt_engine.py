@@ -14,10 +14,6 @@
 
 """Classification convert etlt/onnx model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 import os
@@ -82,7 +78,7 @@ def main(args):
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size)
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

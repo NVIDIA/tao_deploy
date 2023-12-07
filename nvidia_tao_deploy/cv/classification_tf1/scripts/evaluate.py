@@ -85,7 +85,7 @@ def main(args):
             if os.path.isdir(os.path.join(image_dirs, subdir)):
                 mapping_dict[subdir] = idx
 
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
 
     trt_infer = ClassificationInferencer(args.model_path, data_format=data_format, batch_size=batch_size)
 
@@ -134,7 +134,7 @@ def main(args):
     y_predictions = np.argmax(pred_labels, axis=1)
     print(confusion_matrix(gt_labels, y_predictions))
     logging.info("Classification Report")
-    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x:x[1])]
+    target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
     print(classification_report(gt_labels, y_predictions, target_names=target_names))
 
     # Store evaluation results into JSON

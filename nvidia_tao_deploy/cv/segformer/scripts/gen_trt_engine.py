@@ -14,10 +14,6 @@
 
 """Segformer convert etlt model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
 import tempfile
@@ -84,7 +80,7 @@ def main(cfg: ExperimentConfig) -> None:
             output_engine_path,
             data_type)
 
-    logging.info("Export finished successfully.")
+    print("Export finished successfully.")
 
 
 if __name__ == '__main__':

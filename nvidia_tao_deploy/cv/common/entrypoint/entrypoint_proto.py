@@ -14,10 +14,6 @@
 
 """TAO Deploy (TF1) command line wrapper to invoke CLI scripts."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import importlib
 import logging
@@ -33,7 +29,14 @@ from nvidia_tao_deploy.cv.common.telemetry.nvml_utils import get_device_details
 from nvidia_tao_deploy.cv.common.telemetry.telemetry import send_telemetry_data
 
 RELEASE = True
-
+# Configure the logger.
+verbosity = "INFO"
+if not RELEASE:
+    verbosity = "DEBUG"
+logging.basicConfig(
+    format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s: %(message)s',
+    level=verbosity
+)
 logger = logging.getLogger(__name__)
 
 
@@ -196,13 +199,6 @@ def launch_job(package, package_name, cl_args=None):
     if __name__ == "__main__":
         launch_job(nvidia_tao_deploy.cv.X.scripts, "X", sys.argv[1:])
     """
-    # Configure the logger.
-    verbosity = "INFO"
-    if not RELEASE:
-        verbosity = "DEBUG"
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-                        level=verbosity)
-
     # build modules
     modules = get_modules(package)
     parser = build_command_line_parser(package_name, modules)
@@ -232,7 +228,7 @@ def launch_job(package, package_name, cl_args=None):
 
     run_command = f"bash -c '{env_variables} {task_command} {formatted_args}'"
 
-    logger.debug("Run command: %s", run_command)
+    # logging.debug("Run command: {}".format(run_command))
 
     process_passed = True
     start = time()
@@ -254,7 +250,12 @@ def launch_job(package, package_name, cl_args=None):
         logger.info("Command was interrupted.")
     except subprocess.CalledProcessError as e:
         if e.output is not None:
-            print(f"TAO Deploy task: {task} failed with error:\n{e.output}")
+            logger.info(
+                "TAO Deploy task: {} failed with error:\n{}".format(
+                    task,
+                    e.output
+                )
+            )
         process_passed = False
 
     end = time()
@@ -279,7 +280,7 @@ def launch_job(package, package_name, cl_args=None):
         pass
 
     if not process_passed:
-        logger.warning("Execution status: FAIL")
+        logger.info("Execution status: FAIL")
         sys.exit(1)  # returning non zero return code from the process.
 
     logger.info("Execution status: PASS")

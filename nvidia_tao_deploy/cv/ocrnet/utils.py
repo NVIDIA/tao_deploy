@@ -32,3 +32,13 @@ def decode_ctc(output_id, output_prob, character_list, blank_id=0):
         if idx != blank_id:
             text += character_list[idx]
     return text, prob
+
+
+def decode_attn(output_id, output_prob, character_list):
+    """Decode the raw attn output to string."""
+    seq = np.squeeze(output_id)
+    pred = ''.join([character_list[i] for i in seq])
+    pred_EOS = pred.find('[s]')
+    text = pred[:pred_EOS]  # prune after "end of sentence" token ([s])
+    prob = np.cumprod(output_prob[:pred_EOS])[-1]
+    return text, prob

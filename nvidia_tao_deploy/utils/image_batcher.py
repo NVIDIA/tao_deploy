@@ -82,14 +82,17 @@ class ImageBatcher:
         self.format = None
         self.width = -1
         self.height = -1
-        if self.shape[1] == 3:
+        self.channel = -1
+        if self.shape[1] in [3, 1]:
             self.format = "channels_first"
             self.height = self.shape[2]
             self.width = self.shape[3]
-        elif self.shape[3] == 3:
+            self.channel = self.shape[1]
+        elif self.shape[3] in [3, 1]:
             self.format = "channels_last"
             self.height = self.shape[1]
             self.width = self.shape[2]
+            self.channel = self.shape[3]
         assert all([self.format, self.width > 0, self.height > 0])
 
         # Adapt the number of images as needed
@@ -207,11 +210,15 @@ class ImageBatcher:
                                      img_mean=self.img_mean,
                                      img_std=self.img_std,
                                      mode='torch')
-
+        elif self.preprocessor == "OCRNet":
+            image = image.convert("L")
+            image = image.resize((self.width, self.height), resample=Image.BICUBIC)
+            image = (np.array(image, dtype=self.dtype) / 255.0 - 0.5) / 0.5
         else:
             raise NotImplementedError(f"Preprocessing method {self.preprocessor} not supported")
         if self.format == "channels_first":
-            image = np.transpose(image, (2, 0, 1))
+            if self.channel != 1:
+                image = np.transpose(image, (2, 0, 1))
         return image, scale
 
     def get_batch(self):

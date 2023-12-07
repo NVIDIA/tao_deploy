@@ -69,6 +69,12 @@ class OCRNetAugmentationConfig:
     """Augmentation config."""
 
     keep_aspect_ratio: bool = False
+    aug_prob: float = 0.0
+    reverse_color_prob: float = 0.5
+    rotate_prob: float = 0.5
+    max_rotation_degree: int = 5
+    blur_prob: float = 0.5
+    gaussian_radius_list: Optional[List[int]] = field(default_factory=lambda: [1, 2, 3, 4])
 
 
 @dataclass
@@ -76,7 +82,9 @@ class OCRNetDatasetConfig:
     """Dataset config."""
 
     train_dataset_dir: Optional[List[str]] = None
+    train_gt_file: Optional[str] = None
     val_dataset_dir: Optional[str] = None
+    val_gt_file: Optional[str] = None
     character_list_file: Optional[str] = None
     max_label_length: int = 25  # Shall we check it with output feature length ?
     batch_size: int = 32
@@ -114,7 +122,7 @@ class OCRNetGenTrtEngineExpConfig:
     gpu_id: int = 0
     onnx_file: str = MISSING
     trt_engine: Optional[str] = None
-    input_channel: int = 1
+    input_channel: int = 3
     input_width: int = 100
     input_height: int = 32
     opset_version: int = 12
@@ -140,6 +148,7 @@ class OCRNetTrainExpConfig:
     checkpoint_interval: int = 2
     validation_interval: int = 1
     distributed_strategy: str = "ddp"
+    model_ema: bool = False
 
 
 @dataclass

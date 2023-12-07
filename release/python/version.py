@@ -15,7 +15,7 @@
 """Version string for the TAO Toolkit Deploy AI models/tasks."""
 
 MAJOR = "5"
-MINOR = "0.0"
+MINOR = "2.0"
 PATCH = "01"
 PRE_RELEASE = ''
 
