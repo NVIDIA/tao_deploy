@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import json
 import logging
 from tqdm import tqdm
 from omegaconf import OmegaConf
@@ -69,6 +70,10 @@ def run_experiment(experiment_config, model_path):
     print("Precision: ", result[1])
     print("Recall: ", result[0])
     print("F-measure: ", result[2])
+    eval_results = {"Precision": result[1], "Recall": result[0], "F-measure": result[2]}
+    print("Saving evaluation result in {}/results.json".format(experiment_config['evaluate']['results_dir']))
+    with open(os.path.join(experiment_config['evaluate']['results_dir'], "results.json"), "w", encoding="utf-8") as f:
+        json.dump(eval_results, f)
 
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',

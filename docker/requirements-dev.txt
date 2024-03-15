@@ -32,3 +32,9 @@ flake8
 pydocstyle
 pyflakes
 pylint
+# oss security fixes for 24.02
+pipreqs==0.4.12
+PyInstaller==5.13.1
+cryptography==41.0.2
+fontTools==4.43.0
+certifi==2023.7.22

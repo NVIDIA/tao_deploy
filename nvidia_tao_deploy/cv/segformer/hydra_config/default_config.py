@@ -32,8 +32,8 @@ class TestModelConfig:
     """Configuration parameters for Inference."""
 
     mode: str = "whole"
-    crop_size: Optional[List[int]] = None  # Configurable
-    stride: Optional[List[int]] = None  # Configurable
+    # crop_size: Optional[List[int]] = None  # Configurable
+    # stride: Optional[List[int]] = None  # Configurable
 
 
 @dataclass
@@ -49,16 +49,23 @@ class LossDecodeConfig:
 class SegformerHeadConfig:
     """Configuration parameters for Segformer Head."""
 
-    # @subha TO DO: Look into align corners
+    type: str = "SegformerHead"
+    # If mit-b0 this is [32, 64, 160, 256]
     in_channels: List[int] = field(default_factory=lambda: [64, 128, 320, 512])  # [64, 128, 320, 512], [32, 64, 160, 256]
     in_index: List[int] = field(default_factory=lambda: [0, 1, 2, 3])  # No change
-    feature_strides: List[int] = field(default_factory=lambda: [4, 8, 16, 32])  # No change
+    # @sean this is handled by the mmseg SegFormerHead
+    # feature_strides: List[int] = field(default_factory=lambda: [4, 8, 16, 32])  # No change
     channels: int = 128  # No change
     dropout_ratio: float = 0.1
+    num_classes: int = 150
     norm_cfg: NormConfig = NormConfig()
     align_corners: bool = False
-    decoder_params: Dict[str, int] = field(default_factory=lambda: {"embed_dim": 768})  # 256, 512, 768 -> Configurable
+    # For mit-b0 and mit-b1, this is 256, o.w. 768
+    # @sean I don't see this in mmseg
+    # decoder_params: Dict[str, int] = field(default_factory=lambda: {"embed_dim": 768})  # 256, 512, 768 -> Configurable
     loss_decode: LossDecodeConfig = LossDecodeConfig()  # Non-configurable since there is only one loss
+
+    # export: bool = False
 
 
 @dataclass
@@ -68,33 +75,42 @@ class MultiStepLRConfig:
     lr_steps: List[int] = field(default_factory=lambda: [15, 25])
     lr_decay: float = 0.1
 
+# Old LR scheduler
+# @dataclass
+# class LRConfig:
+#     """Configuration parameters for LR Scheduler."""
+
+#     # Check what is _delete_ is
+#     policy: str = "poly"  # Non-configurable
+#     warmup: str = 'linear'  # Non-configurable
+#     warmup_iters: int = 1500
+#     warmup_ratio: float = 1e-6
+#     power: float = 1.0
+#     min_lr: float = 0.0
+#     by_epoch: bool = False
+
 
 @dataclass
-class PolyConfig:
+class PolyLRConfig:
     """Configuration parameters for Polynomial LR decay."""
 
-    # Check what is _delete_ is
-    policy: str = "poly"
-    warmup: str = 'linear'
-    warmup_iters: int = 1500
-    warmup_ratio: float = 1e-6
+    type: str = 'PolyLR'
+    eta_min: float = 0.0
     power: float = 1.0
-    min_lr: float = 0.0
+    begin: int = 1500
+    end: int = 160000
     by_epoch: bool = False
 
 
 @dataclass
-class LRConfig:
-    """Configuration parameters for LR Scheduler."""
+class LinearLRConfig:
+    """Configuration parameters for Linear LR."""
 
-    # Check what is _delete_ is
-    policy: str = "poly"  # Non-configurable
-    warmup: str = 'linear'  # Non-configurable
-    warmup_iters: int = 1500
-    warmup_ratio: float = 1e-6
-    power: float = 1.0
-    min_lr: float = 0.0
+    type: str = "LinearLR"
+    start_factor: float = 1e-6
     by_epoch: bool = False
+    begin: int = 0
+    end: int = 1500
 
 
 @dataclass
@@ -114,24 +130,36 @@ class SFOptimConfig:
     lr: float = 0.00006
     betas: List[float] = field(default_factory=lambda: [0.9, 0.999])
     weight_decay: float = 0.01
-    paramwise_cfg: ParamwiseConfig = ParamwiseConfig()
-    weight_decay: float = 5e-4
+
+
+@dataclass
+class SFOptimWrapperConfig:
+    """OptimizerWrapper config."""
+
+    # The Amp wrapper enables mixed precision training
+    type: str = "AmpOptimWrapper"
+    optimizer: SFOptimConfig = SFOptimConfig()
+    paramwise_cfg: Dict[str, ParamwiseConfig] = field(default_factory=lambda: {'custom_keys': ParamwiseConfig()})
 
 
 @dataclass
 class BackboneConfig:
     """Configuration parameters for Backbone."""
 
-    type: str = "mit_b5"
+    type: str = "mit_b1"
+    init_cfg: Dict[str, Any] = field(default_factory=lambda: {"type": "Pretrained", "checkpoint": None})
 
 
 @dataclass
 class SFModelConfig:
     """SF model config."""
 
+    type: str = "EncoderDecoder"
     pretrained_model_path: Optional[str] = None
     backbone: BackboneConfig = BackboneConfig()
     decode_head: SegformerHeadConfig = SegformerHeadConfig()
+    # @sean setting this triggers an error in mmseg, report this bug
+    # Basically this one should be generalized https://github.com/open-mmlab/mmsegmentation/issues/3011
     test_cfg: TestModelConfig = TestModelConfig()
     input_width: int = 512
     input_height: int = 512
@@ -150,6 +178,7 @@ class RandomCropCfg:
 class ResizeCfg:
     """Configuration parameters for Resize Preprocessing."""
 
+    # TODO: in old, this is supposedly 512, 1024 for training, but 512, 2048 for testing?
     img_scale: Optional[List[int]] = None  # configurable
     ratio_range: List[float] = field(default_factory=lambda: [0.5, 2.0])
     keep_ratio: bool = True
@@ -173,6 +202,9 @@ class ImgNormConfig:
     mean: List[float] = field(default_factory=lambda: [123.675, 116.28, 103.53])
     std: List[float] = field(default_factory=lambda: [58.395, 57.12, 57.375])
     to_rgb: bool = True
+    pad_val: int = 0
+    seg_pad_val: int = 255
+    type: str = "SegDataPreProcessor"
 
 
 @dataclass
@@ -200,8 +232,8 @@ class seg_class:
 class SFDatasetConfig:
     """Dataset Config."""
 
-    img_dir: Any = MISSING
-    ann_dir: Any = MISSING
+    img_dir: Optional[Any] = None
+    ann_dir: Optional[Any] = None
     pipeline: PipelineConfig = PipelineConfig()
 
 
@@ -209,7 +241,7 @@ class SFDatasetConfig:
 class SFDatasetExpConfig:
     """Dataset config."""
 
-    data_root: str = MISSING
+    data_root: Optional[str] = None
     img_norm_cfg: ImgNormConfig = ImgNormConfig()
     train_dataset: SFDatasetConfig = SFDatasetConfig()
     val_dataset: SFDatasetConfig = SFDatasetConfig()
@@ -217,13 +249,26 @@ class SFDatasetExpConfig:
     palette: Optional[List[seg_class]] = None
     seg_class_default: seg_class = seg_class()
     dataloader: str = "Dataloader"
-    img_suffix: Optional[str] = None
-    seg_map_suffix: Optional[str] = None
+    img_suffix: Optional[str] = ".png"
+    seg_map_suffix: Optional[str] = ".png"
     repeat_data_times: int = 2
     batch_size: int = 2
     workers_per_gpu: int = 2
     shuffle: bool = True
     input_type: str = "rgb"
+
+    # This is set to false because we only have 2 classes in the example
+    reduce_zero_label: bool = False
+    type: str = "BaseSegDataset"
+
+
+@dataclass
+class SFEnvConfig:
+    """Env Config for Segformer."""
+
+    cudnn_benchmark: bool = True
+    mp_cfg: Dict[Any, Any] = field(default_factory=lambda: {'mp_start_method': 'fork', 'opencv_num_threads': 0})
+    dist_cfg: Dict[str, str] = field(default_factory=lambda: {'backend': 'nccl'})
 
 
 @dataclass
@@ -231,11 +276,16 @@ class SFExpConfig:
     """Overall Exp Config for Segformer."""
 
     manual_seed: int = 47
+    deterministic: bool = False
     distributed: bool = True
     # If needed, the next line can be commented
     gpu_ids: List[int] = field(default_factory=lambda: [0])
     MASTER_ADDR: str = "127.0.0.1"
-    MASTER_PORT: int = 631
+    MASTER_PORT: int = 25678
+
+    env_cfg: SFEnvConfig = SFEnvConfig()
+    default_scope: str = "mmseg"
+    log_level: str = "INFO"
 
 
 @dataclass
@@ -243,7 +293,8 @@ class TrainerConfig:
     """Train Config."""
 
     sf_optim: SFOptimConfig = SFOptimConfig()
-    lr_config: LRConfig = LRConfig()
+    # lr_config: LRConfig = LRConfig()
+    lr_config: LinearLRConfig = LinearLRConfig()
     grad_clip: float = 0.0
     find_unused_parameters: bool = True
 
@@ -253,7 +304,7 @@ class SFTrainExpConfig:
     """Train experiment config."""
 
     results_dir: Optional[str] = None
-    encryption_key: str = MISSING
+    encryption_key: Optional[str] = None
     exp_config: SFExpConfig = SFExpConfig()
     trainer: TrainerConfig = TrainerConfig()
     num_gpus: int = 1  # non configurable here
@@ -264,12 +315,25 @@ class SFTrainExpConfig:
     validation_interval: Optional[int] = 1
     validate: bool = False
 
+    optim_wrapper: SFOptimWrapperConfig = SFOptimWrapperConfig()
+    param_scheduler: List[Any] = field(default_factory=lambda:
+                                       [LinearLRConfig(), PolyLRConfig()])
+    load_from: Optional[str] = None
+    resume: bool = False
+
+    default_hooks: Dict[Any, Any] = field(default_factory=lambda: {'timer': {'type': 'IterTimerHook'},
+                                                                   'logger': {'type': 'LoggerHook', 'interval': 1, 'log_metric_by_epoch': False},
+                                                                   'param_scheduler': {'type': 'ParamSchedulerHook'},
+                                                                   'checkpoint': {'type': 'CheckpointHook', 'by_epoch': False, 'interval': 1},
+                                                                   'sampler_seed': {'type': 'DistSamplerSeedHook'},
+                                                                   'visualization': {'type': 'SegVisualizationHook'}})
+
 
 @dataclass
 class SFInferenceExpConfig:
     """Inference experiment config."""
 
-    encryption_key: str = MISSING
+    encryption_key: Optional[str] = None
     results_dir: Optional[str] = None
     gpu_id: int = 0
     checkpoint: Optional[str] = None
@@ -283,7 +347,7 @@ class SFEvalExpConfig:
     """Inference experiment config."""
 
     results_dir: Optional[str] = None
-    encryption_key: str = MISSING
+    encryption_key: Optional[str] = None
     gpu_id: int = 0
     checkpoint: Optional[str] = None
     exp_config: SFExpConfig = SFExpConfig()
@@ -303,11 +367,35 @@ class TrtConfig:
 
 
 @dataclass
+class OnnxConfig:
+    """Onnx config."""
+
+    type: str = 'onnx'
+    export_params: bool = True
+    keep_initializers_as_inputs: bool = False
+    opset_version: int = 13
+    save_file: Optional[str] = None
+    input_names: Optional[Any] = None
+    output_names: Optional[Any] = None
+    input_shape: Optional[Any] = None
+    optimize: bool = True
+
+
+@dataclass
+class CodebaseConfig:
+    """Codebase config for onnx"""
+
+    type: str = 'mmseg'
+    task: str = 'Segmentation'
+    with_argmax: bool = True
+
+
+@dataclass
 class SFExportExpConfig:
     """Export experiment config."""
 
     results_dir: Optional[str] = None
-    encryption_key: str = MISSING
+    encryption_key: Optional[str] = None
     verify: bool = True
     simplify: bool = False
     batch_size: int = 1
@@ -322,6 +410,9 @@ class SFExportExpConfig:
     input_width: int = 1024
     input_height: int = 1024
 
+    onnx_config: OnnxConfig = OnnxConfig()
+    codebase_config: CodebaseConfig = CodebaseConfig()
+
 
 @dataclass
 class GenTrtEngineExpConfig:
@@ -331,7 +422,7 @@ class GenTrtEngineExpConfig:
     gpu_id: int = 0
     onnx_file: Optional[str] = None
     trt_engine: Optional[str] = None
-    input_channel: int = 3  # Non-configurable
+    input_channel: int = 3
     input_width: int = 224
     input_height: int = 224
     opset_version: int = 12

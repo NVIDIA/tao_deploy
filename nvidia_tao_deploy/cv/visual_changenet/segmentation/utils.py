@@ -35,15 +35,15 @@ import matplotlib.pyplot as plt
 # LandSCD mapping for external use."""
 colour_mappings_landSCD = {
     '0': (255, 255, 255),
-    '1': (229, 156, 22),
-    '2': (196, 67, 84),
-    '3': (50, 153, 50),
-    '4': (229, 115, 213),
-    '5': (255, 0, 255),
-    '6': (114, 229, 190),
-    '7': (209, 69, 17),
-    '8': (186, 218, 85),
-    '9': (132, 17, 209),
+    '1': (255, 165, 0),
+    '2': (230, 30, 100),
+    '3': (70, 140, 0),
+    '4': (218, 112, 214),
+    '5': (0, 170, 240),
+    '6': (127, 235, 170),
+    '7': (230, 80, 0),
+    '8': (205, 220, 57),
+    '9': (218, 165, 32)
 }
 
 
@@ -142,12 +142,9 @@ def visualize_infer_output(name, output, img1, img2, n_class, color_map, vis_dir
 
     if n_class > 2:
         # print("Visualising multiple classes")
-        # TODO: Verify this and verify for bs>1
+        vis_pred = make_numpy_grid(visualize_pred_multi(output), num_class=n_class, color_map=color_map)
         if mode == 'test':
-            vis_pred = make_numpy_grid(visualize_pred_multi(output), num_class=n_class, color_map=color_map)
             vis_gt = make_numpy_grid(gt, num_class=n_class, color_map=color_map)
-        else:
-            vis_pred = make_numpy_grid(visualize_pred_multi(output), num_class=n_class, color_map=color_map)
 
     else:
         vis_pred = make_numpy_grid(visualize_pred(output))
@@ -163,21 +160,28 @@ def visualize_infer_output(name, output, img1, img2, n_class, color_map, vis_dir
 
     if mode == 'test':
         vis_gt = np.transpose(vis_gt, (2, 0, 1))
-        if n_class > 2:
-            vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred, line, vis_gt], axis=2)
-        else:
-            vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred, line, vis_gt], axis=2)
+        # Combine predictions in the order of Image A, Image B, Prediction, GT.
+        vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred, line, vis_gt], axis=2)
     else:
-        if n_class > 2:
-            vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred], axis=2)
-        else:
-            vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred], axis=2)
+        # Combine predictions in the order of Image A, Image B, Prediction
+        vis = np.concatenate([vis_input, line, vis_input2, line, vis_pred], axis=2)
 
     vis = np.clip(vis, a_min=0.0, a_max=1.0)
+    # Save combined visualisation in a different folder.
+    vis_combined_dir = os.path.join(vis_dir, "combined_visualisation")
+    if not os.path.exists(vis_combined_dir):
+        os.makedirs(vis_combined_dir)
     file_name = os.path.join(
-        vis_dir, str(name) + '.jpg')
+        vis_combined_dir, str(name) + '.jpg')
     vis = np.transpose(vis, (1, 2, 0))
     plt.imsave(file_name, vis)
+
+    # Dump Predictions only
+    vis_pred = np.clip(vis_pred, a_min=0.0, a_max=1.0)
+    file_name = os.path.join(
+        vis_dir, str(name) + '.jpg')
+    vis_pred_only = np.transpose(vis_pred, (1, 2, 0))
+    plt.imsave(file_name, vis_pred_only)
 
 
 # Metrics

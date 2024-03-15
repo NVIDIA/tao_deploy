@@ -25,7 +25,7 @@ def main(args=None):
 
     if not os.path.exists(args.model_path):
         raise FileNotFoundError(f"{args.model_path} does not exist")
-    
+
     dir_name = os.path.dirname(args.output_path)
     os.makedirs(dir_name, exist_ok=True)
 

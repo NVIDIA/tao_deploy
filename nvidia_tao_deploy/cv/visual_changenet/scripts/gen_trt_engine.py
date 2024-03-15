@@ -51,6 +51,11 @@ def main(cfg: ExperimentConfig) -> None:
     max_batch_size = cfg.gen_trt_engine.tensorrt.max_batch_size
     batch_size = cfg.gen_trt_engine.batch_size
 
+    # For ViT-L, override workspace to be larger. #TODO: Check if needed.
+    if cfg.model.backbone == "vit_large_dinov2" and workspace_size < 24080:
+        logger.warning("Overriding workspace_size from {} to 20480 due to ViT's model size".format(workspace_size))
+        workspace_size = 20480
+
     if engine_file is None:
         engine_handle, temp_engine_path = tempfile.mkstemp()
         os.close(engine_handle)

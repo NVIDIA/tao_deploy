@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import logging
 import os
+import json
 from tqdm import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -90,9 +91,15 @@ def main(cfg: ExperimentConfig) -> None:
                 acc_cnt += 1
 
     log_info = f"Accuracy: {acc_cnt}/{total_cnt} {float(acc_cnt)/float(total_cnt)}"
+    acc = float(acc_cnt) / float(total_cnt)
     # logging.info("Accuracy: {}/{} {}".format(acc_cnt, total_cnt, float(acc_cnt)/float(total_cnt)))
     logging.info(log_info)
     logging.info("TensorRT engine evaluation finished successfully.")
+
+    # Store evaluation results into JSON
+    eval_results = {"Accuracy": acc}
+    with open(os.path.join(cfg.results_dir, "results.json"), "w", encoding="utf-8") as f:
+        json.dump(eval_results, f)
 
 
 if __name__ == '__main__':

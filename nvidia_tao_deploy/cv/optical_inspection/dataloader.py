@@ -183,14 +183,14 @@ class OpticalInspectionDataLoader(ABC):
             concatenated_image (np.ndarray): Concatenated image input.
         """
         if self.concat_type == "grid" and int(self.num_inputs) % 2 == 0:
-            x, y = int(self.grix_map["x"]), int(self.grid_map["y"])
+            x, y = int(self.grid_map["x"]), int(self.grid_map["y"])
             concatenated_image = np.zeros((3, x * self.output_shape[0], y * self.output_shape[1]))
             for idx in range(x):
                 for idy in range(y):
                     concatenated_image[
                         :,
-                        idx * self.output_shape[0],
-                        idy * self.output_shape[1]] = preprocessed_image_array[idx * x + idy]
+                        idx * self.output_shape[0]: (idx + 1) * self.output_shape[0],
+                        idy * self.output_shape[1]: (idy + 1) * self.output_shape[1]] = preprocessed_image_array[idx * x + idy]
         else:
             concatenated_image = np.zeros((
                 3,

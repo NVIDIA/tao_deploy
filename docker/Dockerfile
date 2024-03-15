@@ -1,10 +1,13 @@
-FROM nvcr.io/nvidia/tensorrt:23.02-py3
+FROM nvcr.io/nvidia/tensorrt:23.12-py3
 
 RUN apt-get update && \
     apt-get install -y pkg-config && \
     apt-get install -y git && \
     apt-get install -y zlib1g && \
     apt-get install -y zlib1g-dev
+
+RUN apt --only-upgrade install openssl && \
+    apt --only-upgrade install libpmix2
 
 RUN DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" apt-get install ffmpeg libsm6 libxext6  -y
 # upgrade pip
@@ -35,6 +38,9 @@ ARG CUDA_VERSION_FULL=$CUDA_VERSION_MAJOR_MINOR.$CUDA_VERSION_PATCH.$CUDA_VERSIO
 ARG CUDNN_VERSION=8.9
 
 ENV TRT_VERSION=$TRT_VERSION_FULL+cuda$CUDA_VERSION_FULL
+# RUN --mount=from=build-scripts,source=build-scripts,target=/nvidia/build-scripts \
+#     unset TRTOSS_VERSION && \
+#     /nvidia/build-scripts/installTRT.sh
 
 RUN cd /opt
 ENV TRT_TAG "release/$TRT_VERSION_MAJOR_MINOR"
@@ -67,6 +73,7 @@ RUN mkdir trt_oss_src && \
 #     pip install graphsurgeon --index-url https://pypi.ngc.nvidia.com && \
 #     pip install onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com
 
+WORKDIR /workspace/
 # Create user that will run commands
 ARG user_id=1000
 ARG user_name=developer
