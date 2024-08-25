@@ -1,0 +1,16 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message EvalConfig {
+    //required
+    uint32 validation_period_during_training = 1;
+    enum AP_MODE {
+        SAMPLE = 0;
+        INTEGRATE = 1;
+    }
+    AP_MODE average_precision_mode = 2;
+    uint32 batch_size = 3;
+    float matching_iou_threshold = 4;
+    bool visualize_pr_curve = 5;
+}

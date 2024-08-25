@@ -1,0 +1,48 @@
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MaskRCNN experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/mask_rcnn/proto/maskrcnn_config.proto";
+import "nvidia_tao_deploy/cv/mask_rcnn/proto/data_config.proto";
+
+message Experiment {
+
+    MaskRCNNConfig maskrcnn_config = 1;
+    DataConfig data_config = 2;
+    // experiment params
+    string skip_checkpoint_variables = 3;
+    // bool include_groundtruth_in_features = 4;
+    uint32 train_batch_size = 5;
+    uint32 save_checkpoints_steps = 6;
+    uint32 num_steps_per_eval = 7;
+    float momentum = 8;
+    // bool use_batched_nms = 9;
+    float l2_weight_decay = 10;
+    float warmup_learning_rate = 11;
+    float init_learning_rate = 12;
+    float global_gradient_clip_ratio = 13;
+    uint32 total_steps = 14;
+    bool visualize_images_summary = 15;
+    // bool finetune_bn = 16;
+    // bool use_custom_box_proposals_op = 17;
+    // bool use_xla = 18;
+    string checkpoint = 19;
+    uint32 eval_batch_size = 20;
+    uint32 warmup_steps = 21;
+    string learning_rate_steps = 22;
+    string learning_rate_decay_levels = 23;
+    uint32 seed = 24;
+    uint32 report_frequency = 25;
+    bool use_amp = 26;
+    string pruned_model_path = 27;
+    float l1_weight_decay = 28;
+    uint32 num_epochs = 29;
+    uint32 num_examples_per_epoch = 30;
+    uint32 logging_frequency = 31;
+}
+
+	

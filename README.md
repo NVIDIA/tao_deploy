@@ -1,92 +1,185 @@
-# tao-deploy
+# TAO Toolkit - Deploy Backend
 
+<!-- vscode-markdown-toc -->
+* [Overview](#Overview)
+* [Getting Started](#GettingStarted)
+	* [Requirements](#Requirements)
+		* [Hardware Requirements](#HardwareRequirements)
+		* [Software Requirements](#SoftwareRequirements)
+	* [Instantiating the development container](#Instantiatingthedevelopmentcontainer)
+	* [Updating the base docker](#Updatingthebasedocker)
+		* [Build base docker](#Buildbasedocker)
+		* [Test the newly built base docker](#Testthenewlybuiltbasedocker)
+		* [Update the new docker](#Updatethenewdocker)
+* [Building a release container](#Buildingareleasecontainer)
+* [Running TAO Deploy on Jetson devices](#JetsonDevices)
+* [Contribution Guidelines](#ContributionGuidelines)
+* [License](#License)
 
+<!-- vscode-markdown-toc-config
+	numbering=false
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
 
-## Getting started
+## <a name='Overview'></a>Overview
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+TAO Toolkit is a Python package hosted on the NVIDIA Python Package Index. It interacts with lower-level TAO dockers available from the NVIDIA GPU Accelerated Container Registry (NGC). The TAO containers come pre-installed with all dependencies required for training. The output of the TAO workflow is a trained model that can be deployed for inference on NVIDIA devices using DeepStream, TensorRT and Triton.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+This repository contains the required implementation for all the deep learning components and networks using the TensorRT backend. These routines are packaged as part of the TAO Toolkit TensorRT container in the Toolkit package. The source code here is compatible with TensorRT version <= 8.5.3
 
-## Add your files
+## <a name='GettingStarted'></a>Getting Started
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+As soon as the repository is cloned, run the `envsetup.sh` file to check
+if the build environment has the necessary dependencies, and the required
+environment variables are set.
+
+```sh
+source scripts/envsetup.sh
+```
+
+We recommend adding this command to your local `~/.bashrc` file, so that every new terminal instance receives this.
+
+### <a name='Requirements'></a>Requirements
+
+#### <a name='HardwareRequirements'></a>Hardware Requirements
+
+##### Minimum system configuration
+
+* 8 GB system RAM
+* 4 GB of GPU RAM
+* 8 core CPU
+* 1 NVIDIA GPU
+* 100 GB of SSD space
+
+##### Recommended system configuration
+
+* 32 GB system RAM
+* 32 GB of GPU RAM
+* 8 core CPU
+* 1 NVIDIA GPU
+* 100 GB of SSD space
+
+#### <a name='SoftwareRequirements'></a>Software Requirements
+
+| **Software**                     | **Version** |
+| :--- | :--- |
+| Ubuntu LTS                       | >=18.04     |
+| python                           | >=3.8.x     |
+| docker-ce                        | >19.03.5    |
+| docker-API                       | 1.40        |
+| `nvidia-container-toolkit`       | >1.3.0-1    |
+| nvidia-container-runtime         | 3.4.0-1     |
+| nvidia-docker2                   | 2.5.0-1     |
+| nvidia-driver                    | >525.85     |
+| python-pip                       | >21.06      |
+
+### <a name='Instantiatingthedevelopmentcontainer'></a>Instantiating the development container
+
+In order to maintain a uniform development environment across all users, TAO Toolkit provides a base environment docker that has been built and uploaded to NGC for the developers. For instantiating the docker, simply run the `tao_deploy` CLI. The usage for the command line launcher is mentioned below.
+
+```sh
+usage: tao_deploy [-h] [--gpus GPUS] [--volume VOLUME] [--env ENV] [--mounts_file MOUNTS_FILE] [--shm_size SHM_SIZE] [--run_as_user] [--tag TAG] [--ulimit ULIMIT] [--port PORT]
+
+Tool to run the TAO Toolkit Deploy container.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --gpus GPUS           Comma separated GPU indices to be exposed to the docker.
+  --volume VOLUME       Volumes to bind.
+  --env ENV             Environment variables to bind.
+  --mounts_file MOUNTS_FILE
+                        Path to the mounts file.
+  --shm_size SHM_SIZE   Shared memory size for docker
+  --run_as_user         Flag to run as user
+  --tag TAG             The tag value for the local dev docker.
+  --ulimit ULIMIT       Docker ulimits for the host machine.
+  --port PORT           Port mapping (e.g. 8889:8889).
 
 ```
-cd existing_repo
-git remote add origin https://gitlab-master.nvidia.com/tlt/tao-deploy.git
-git branch -M main
-git push -uf origin main
+
+A sample command to instantiate an interactive session in the base development docker is mentioned below.
+
+```sh
+tao_deploy --gpus all --volume /path/to/data/on/host:/path/to/data/on/container --volume /path/to/results/on/host:/path/to/results/in/container
 ```
 
-## Integrate with your tools
+### <a name='Updatingthebasedocker'></a>Updating the base docker
 
-- [ ] [Set up project integrations](https://gitlab-master.nvidia.com/tlt/tao-deploy/-/settings/integrations)
+There will be situations where developers would be required to update the third party dependencies to newer versions, or upgrade CUDA, etc. In such a case, please follow the steps below:
 
-## Collaborate with your team
+#### <a name='Buildbasedocker'></a>Build base docker
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+The base dev docker is defined in `$NV_TAO_DEPLOY_TOP/docker/Dockerfile`. The python packages required for the TAO dev is defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-pip.txt` and the third party apt packages are defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-apt.txt`. Once you have made the required change, please update the base docker using the build script in the same directory.
 
-## Test and Deploy
+```sh
+git submodule update --init --recursive
+git submodule foreach git pull origin main
+cd $NV_TAO_DEPLOY_TOP/docker
+./build.sh --build
+```
 
-Use the built-in continuous integration in GitLab.
+#### <a name='Testthenewlybuiltbasedocker'></a>Test the newly built base docker
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+The build script tags the newly built base docker with the username of the account in the user's local machine. Therefore, the developers may tests their new docker by using the `tao_deploy` command with the `--tag` option.
 
-***
+```sh
+tao_deploy --tag $USER -- script args
+```
 
-# Editing this README
+#### <a name='Updatethenewdocker'></a>Update the new docker
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Once you are sufficiently confident about the newly built base docker, please do the following
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+1. Push the newly built base docker to the registry
 
-## Name
-Choose a self-explaining name for your project.
+    ```sh
+    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --push
+    ```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+2. The above step produces a digest file associated with the docker. This is a unique identifier for the docker. So please note this, and update all references of the old digest in the repository with the new digest. You may find the old digest in the `$NV_TAO_DEPLOY_TOP/docker/manifest.json`.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Push you final updated changes to the repository so that other developers can leverage and sync with the new dev environment.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Please note that if for some reason you would like to force build the docker without using a cache from the previous docker, you may do so by using the `--force` option.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```sh
+bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --push --force
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## <a name='Buildingareleasecontainer'></a>Building a release container
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+The TAO container is built on top of the TAO Deploy base dev container, by building a python wheel for the `nvidia_tao_deploy` module in this repository and installing the wheel in the Dockerfile defined in `release/docker/Dockerfile`. The whole build process is captured in a single shell script which may be run as follows:
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```sh
+git lfs install
+git lfs pull
+source scripts/envsetup.sh
+cd $NV_TAO_DEPLOY_TOP/release/docker
+./deploy.sh --build --wheel
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+In order to build a new docker, please edit the `deploy.sh` file in `$NV_TAO_DEPLOY_TOP/release/docker` to update the patch version and re-run the steps above.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## <a name='JetsonDevices'></a>Running TAO Deploy on Jetson devices
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+The released TAO Deploy container is based on `x86` platform so it will not work on `aarch64` platforms. In order to run TAO Deploy on Jetson devices, please instantiate [TensorRT-L4T docker hosted on NGC](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-tensorrt) using below command. Note that this TensorRT version may not match with the version from the released TAO container.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```sh
+sudo docker run -it --rm --net=host --runtime nvidia -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix nvcr.io/nvidia/l4t-tensorrt:xx
+```
 
-## License
-For open source projects, say how it is licensed.
+After the container is instantiated, run below steps to install the TAO Deploy wheel and corresponding dependencies on your system.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```sh
+apt install libopenmpi-dev
+pip install nvidia_tao_deploy==5.0.0.423.dev0
+pip install https://files.pythonhosted.org/packages/f7/7a/ac2e37588fe552b49d8807215b7de224eef60a495391fdacc5fa13732d11/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+pip install https://files.pythonhosted.org/packages/0d/05/6caf40aefc7ac44708b2dcd5403870181acc1ecdd93fa822370d10cc49f3/nvidia_eff-0.6.2-py38-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+```
+
+## <a name='ContributionGuidelines'></a>Contribution Guidelines
+TAO Toolkit Deploy backend is not accepting contributions as part of the TAO 5.0 release, but will be open in the future.
+
+## <a name='License'></a>License
+This project is licensed under the [Apache-2.0](./LICENSE) License.

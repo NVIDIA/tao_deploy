@@ -1,0 +1,35 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//proto for the input_image
+
+syntax = "proto3";
+
+message ImageSizeConfigMin {
+    uint32 min = 1;
+}
+
+message ImageSizeConfigHeightWidth{
+    uint32 height = 1;
+    uint32 width =2;
+}
+
+// image type
+enum ImageType {
+    RGB = 0;
+    GRAY_SCALE = 1;
+}
+
+message InputImageConfig {
+    ImageType image_type = 6;
+    //image size config
+    oneof image_size_config{
+        ImageSizeConfigMin size_min = 1;
+        ImageSizeConfigHeightWidth size_height_width = 2;
+    }
+    
+    //image channel mean
+    string image_channel_order = 5;
+    map<string, float> image_channel_mean = 3;
+    float image_scaling_factor = 4;
+    uint32 max_objects_num_per_image = 7;
+}

@@ -1,0 +1,16 @@
+// Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DatasetConfig {
+    //required
+    string training_file_pattern = 1;
+    string validation_file_pattern = 2;
+    string validation_json_file = 3;
+    string testdev_dir = 4;
+    uint32 num_classes = 5;
+    string image_size = 6; // "H, W"
+    bool use_fake_data = 7;
+    uint32 max_instances_per_image = 8;
+    bool skip_crowd_during_training = 9;
+}

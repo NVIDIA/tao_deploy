@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* visualizer_config.proto: Protocol buffer definition for training visualizations.
+*/
+
+syntax = "proto3";
+
+message VisualizerConfig {
+    // Master switch.
+    bool enabled = 1;
+
+    // Number of images to add to Tensorboard visualization.
+    uint32 num_images = 2;
+
+    //visualize histograms
+    bool weight_histograms = 3;
+}

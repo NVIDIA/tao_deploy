@@ -1,0 +1,42 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* inference.proto: Protocol buffer definition to set up the inferencer
+* while running inference.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/inferencer_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/postprocessing_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/wandb_config.proto";
+
+// Defining classwise parameters for clustering
+message ClasswiseBboxHandlerConfig {
+    ClusteringConfig clustering_config = 1;
+    string confidence_model = 2;
+    string output_map = 3;
+    message BboxColor {
+        int32 R = 1;
+        int32 G = 2;
+        int32 B = 3;
+    }
+    BboxColor bbox_color = 7;
+}
+
+// Define bbox handler config
+message BboxHandlerConfig {
+    // Defining DBSCAN clustering parameters
+    bool kitti_dump = 1;
+    bool disable_overlay = 2;
+    int32 overlay_linewidth = 3;
+    map <string, ClasswiseBboxHandlerConfig> classwise_bbox_handler_config = 4;
+    repeated string postproc_classes = 5;
+    WandBConfig wandb_config = 6;
+}
+
+// Global Inferencer config
+message Inference {
+    InferencerConfig inferencer_config = 1;
+    BboxHandlerConfig bbox_handler_config = 2;
+}

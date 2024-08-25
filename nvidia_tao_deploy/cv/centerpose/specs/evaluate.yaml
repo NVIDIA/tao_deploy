@@ -1,0 +1,15 @@
+encryption_key: "???"
+results_dir: "???"
+
+evaluate:
+  num_gpus: 1
+  trt_engine: "???"
+  opencv: False
+  eval_num_symmetry: 1
+  results_dir: "???"
+
+dataset:
+  test_data: "???"
+  num_classes: 1
+  batch_size: 2
+  workers: 4

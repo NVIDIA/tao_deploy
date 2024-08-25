@@ -1,0 +1,14 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* visualizer_config.proto: Protocol buffer definition for training visualizations.
+*/
+
+syntax = "proto3";
+
+message VisualizerConfig {
+    // Master switch.
+    bool enabled = 1;
+    uint32 save_summary_steps = 2;
+    uint32 infrequent_save_summary_steps = 3;
+}

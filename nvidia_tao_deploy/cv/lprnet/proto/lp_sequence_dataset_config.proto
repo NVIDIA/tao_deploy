@@ -1,0 +1,20 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DataSource
+{
+    string label_directory_path = 1;
+    string image_directory_path = 2;
+}
+
+message LPDatasetConfig {
+    // Datasources
+    // Note that paths should be relative to the DATA_ROOT path
+    repeated DataSource data_sources = 1;
+   
+    string characters_list_file = 2;
+
+    repeated DataSource validation_data_sources = 3;
+
+}

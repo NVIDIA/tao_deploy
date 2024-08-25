@@ -1,0 +1,26 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//inference config
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/trt_config.proto";
+
+
+message InferenceConfig {
+    string images_dir = 1; //directory of images
+    string model = 2;
+    uint32 batch_size = 15;
+    uint32 rpn_pre_nms_top_N = 10;
+    uint32 rpn_nms_max_boxes = 7;
+    float rpn_nms_overlap_threshold = 8;
+    float bbox_visualize_threshold = 5;
+    float object_confidence_thres = 16;
+    uint32 classifier_nms_max_boxes = 9;
+    float classifier_nms_overlap_threshold = 6;
+    string detection_image_output_dir = 11;
+    bool bbox_caption_on = 12;
+    string labels_dump_dir = 13;
+    TrtInference trt_inference = 14;
+    uint32 nms_score_bits = 17;
+}

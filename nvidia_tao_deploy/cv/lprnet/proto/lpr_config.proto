@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+//7
+message LPRNetConfig {
+    //optional
+    uint32 sequence_length = 1; //deprecated
+    uint32 hidden_units = 2;
+    //optional
+    uint32 max_label_length = 3;
+
+    string arch = 4;
+    uint32 nlayers = 5;
+
+    repeated uint32 freeze_blocks = 6;
+    bool freeze_bn = 7;
+}

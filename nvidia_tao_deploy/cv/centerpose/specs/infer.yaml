@@ -1,0 +1,22 @@
+encryption_key: "???"
+results_dir: "???"
+
+dataset:
+  inference_data: "???"
+  num_classes: 1
+  batch_size: 1
+  workers: 4
+
+inference:
+  trt_engine: "???"
+  visualization_threshold: 0.3
+  principle_point_x: 298.3225504557292
+  principle_point_y: 392.1635182698568
+  focal_length_x: 651.2994384765625
+  focal_length_y: 651.2994384765625
+  skew: 0.0
+  axis_size: 0.5
+  use_pnp: True
+  save_json: True
+  save_visualization: True
+  opencv: True

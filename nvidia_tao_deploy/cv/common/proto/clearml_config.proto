@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* clearml_config.proto: Protocol buffer definition for
+* training visualizations over clearml.
+*/
+
+syntax = "proto3";
+
+message ClearMLConfig {
+    // Master switch.
+    string project = 1;
+    string task = 2;
+    repeated string tags = 3;
+    bool reuse_last_task_id = 4;
+    bool continue_last_task = 5;
+    bool deferred_init = 6;
+}

@@ -1,0 +1,63 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying training parameters.
+*
+* Allows the user defining the experiment to specify:
+*  -- Batch size and training epoch target
+*  -- Learning rate and regularization
+*  -- The optimizer to be used, with relevant hyperparameters
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/cost_scaling_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/learning_rate_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/optimizer_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/regularizer_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/visualizer_config.proto";
+
+message EarlyStopping {
+    string monitor = 1;
+    float min_delta = 2;
+    uint32 patience = 3;
+}
+
+message TrainingConfig {
+
+    // Per GPU minibatch size.
+    uint32 batch_size_per_gpu = 1;
+
+    // Number of training epochs.
+    uint32 num_epochs = 2;
+
+    // Learning rate.
+    LearningRateConfig learning_rate = 3;
+
+    // Regularizer.
+    RegularizerConfig regularizer = 4;
+
+    // Optimizer.
+    OptimizerConfig optimizer = 5;
+
+    // Cost scaling.
+    CostScalingConfig cost_scaling = 6;
+
+    // Interval to checkpoint training model.
+    uint32 checkpoint_interval = 7;
+
+    // Flag to enable qat model.
+    bool enable_qat = 8;
+
+    oneof load_model {
+        string resume_model_path = 9;
+        string pretrain_model_path = 10;
+        string pruned_model_path = 11;
+    }
+    uint32 max_queue_size = 12;
+    uint32 n_workers = 13;
+    bool use_multiprocessing = 14;
+    EarlyStopping early_stopping = 15;
+    VisualizerConfig visualizer = 16;
+    bool model_ema = 17;
+}

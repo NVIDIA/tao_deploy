@@ -1,0 +1,54 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* dataset_export_config.proto: A container for dataset export parameters. These parameters are
+* different for each data source such as KITTI and Cyclops.
+*
+* Allows the user to specify:
+*  -- One set of dataset export parameters for some data source.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/kitti_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/coco_config.proto";
+
+message DatasetExportConfig {
+
+    oneof convert_config_type {
+        COCOConfig coco_config = 1;
+        KITTIConfig kitti_config = 2;
+    }
+
+    // Sample modification config.
+    message SampleModifierConfig {
+        // Classes to be filtered out if a frame contains only objects of this class.
+        repeated string filter_samples_containing_only = 1;
+
+        // Dominant target classes: Target classes to be considered as dominant when
+        // determining whether to duplicate a sample, see below.
+        repeated string dominant_target_classes = 2;
+
+        // If the class imbalance within the frame is larger than this, duplicate.
+        // E.g. if #bicycles / #dominant class objects > minimum_target_class_imbalance[bicycle],
+        // duplicate.
+        map<string, float> minimum_target_class_imbalance = 3;
+
+        // Number of duplicates to add in case the duplication condition is fulfilled.
+        uint32 num_duplicates = 4;
+
+        // Maximum number of training samples.
+        uint32 max_training_samples = 5;
+
+        // To be able to replicate the exact filtering and duplication behavior that existed prior
+        //  to the removal of the class mapping during the export process, this field is re-
+        //  introduced. Note that it DOES NOT have to follow the class mapping one wishes to use
+        //  during training and DOES NOT modify attributes in a frame like it used to.
+        map<string, string> source_to_target_class_mapping = 6;
+    }
+    SampleModifierConfig sample_modifier_config = 5;
+
+    string image_directory_path = 6;
+
+    map<string, string> target_class_mapping = 7;
+}

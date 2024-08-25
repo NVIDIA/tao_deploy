@@ -1,0 +1,21 @@
+FROM gitlab-master.nvidia.com:5005/tlt/tao-deploy/tao_deploy_l4t_image@sha256:ea6aa51796f747916b85e6a25cd692e9f5704453e52166624e803d88f9e00402
+
+# Installing the TAO Toolkit source code packages.
+WORKDIR /opt/nvidia
+COPY dist/*.whl /opt/nvidia/wheels/
+RUN python -m pip install pip --upgrade \
+    && cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
+    && rm *.whl
+
+RUN rm -rf /opt/nvidia/entrypoint.d/*.txt
+COPY release/docker/entrypoint.d/* /opt/nvidia/entrypoint.d/
+
+# Fixes for 4.0.0 RC security scan
+RUN python -m pip uninstall graphviz -y
+
+ENV NVIDIA_PRODUCT_NAME "TAO Toolkit"
+ENV TAO_TOOLKIT_VERSION="5.2.0"
+ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
+ENV TAO_TELEMETRY_SERVER="https://sqa-telemetry.metropolis.nvidia.com:443/api/v1/telemetry"
+
+CMD [ "/bin/bash" ]

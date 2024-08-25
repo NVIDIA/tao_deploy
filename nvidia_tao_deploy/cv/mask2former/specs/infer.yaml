@@ -1,0 +1,24 @@
+results_dir: /tao_experiments/mask2former_swinl/
+dataset:
+  label_map: /tao_experiments/mask2former_swinl/colormap.json
+  contiguous_id: False
+  type: 'ade'
+  val:
+    name: "ade_val"
+    annot_file: "/datasets/ade_val.jsonl"
+    root_dir: ""
+    batch_size: 1
+    num_workers: 2
+  test:
+    img_dir: /tmp/odise_test_images/
+    batch_size: 1
+model:
+  object_mask_threshold: 0.0
+  overlap_threshold: 0.8
+  sem_seg_head:
+    norm: "GN"
+    num_classes: 150
+inference:
+  trt_engine: "/tao_experiments/mask2former_swinl/train/model_epoch=129-v1.fp16.engine"
+evaluate:
+  trt_engine: "/tao_experiments/mask2former_swinl/train/model_epoch=129-v1.fp16.engine"

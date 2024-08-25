@@ -1,0 +1,19 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying learning rate schedule parameters.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/soft_start_annealing_schedule_config.proto";
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/early_stopping_annealing_schedule_config.proto";
+
+message LearningRateConfig {
+    oneof learning_rate {
+        SoftStartAnnealingScheduleConfig soft_start_annealing_schedule = 1;
+        // If set, use early stopping learning rate. Regular validation hook/AP
+        // computation will not be executed.
+        EarlyStoppingAnnealingScheduleConfig early_stopping_annealing_schedule = 2;
+    }
+}

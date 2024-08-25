@@ -1,0 +1,33 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//optimizer config
+
+syntax = "proto3";
+
+message AdamOptimizerConfig {
+    float lr = 1;
+    float beta_1 = 2;
+    float beta_2 = 3;
+    float epsilon = 4;
+    float decay = 5;
+    bool amsgrad = 6;
+}
+
+message SgdOptimizerConfig {
+    float lr = 1;
+    float momentum = 2;
+    float decay = 3;
+    bool nesterov = 4;
+}
+    
+message RmspropOptimizerConfig {
+    float lr = 1;
+}
+    
+message OptimizerConfig {
+    oneof optim {
+        AdamOptimizerConfig adam = 1;
+        SgdOptimizerConfig sgd = 2;
+        RmspropOptimizerConfig rmsprop = 3;
+    }
+}

@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message AugmentationConfig {
+    float hue = 1;
+    float saturation = 2;
+    float exposure = 3;
+    float vertical_flip = 4;
+    float horizontal_flip = 5;
+    float jitter = 6;
+    int32 output_width=7;
+    int32 output_height=8;
+    int32 output_channel=9;
+    uint32 output_depth=12;
+    int32 randomize_input_shape_period=10;
+    map<string, float> image_mean = 11;
+}

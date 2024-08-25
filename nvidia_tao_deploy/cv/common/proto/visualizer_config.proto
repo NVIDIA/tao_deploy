@@ -1,0 +1,27 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* visualizer_config.proto: Protocol buffer definition for training visualizations.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/wandb_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/clearml_config.proto";
+
+message VisualizerConfig {
+    // Master switch.
+    bool enabled = 1;
+
+    // Number of images to add to Tensorboard visualization.
+    uint32 num_images = 2;
+
+    //visualize histograms
+    bool weight_histograms = 3;
+
+    // configuration setting for weights and biases.
+    WandBConfig wandb_config = 4;
+
+    // configuration setting for clearml.
+    ClearMLConfig clearml_config = 5;
+}

@@ -1,0 +1,68 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message ModelConfig {
+    // Optional path to a pretrained model that is retrained.
+    string pretrained_model_file = 1;
+
+    // Prevent updates on any layer weights and variables
+    // when pretrained_model_file is supplied.
+    bool freeze_pretrained_layers = 2;
+
+    // Whether to allow modification of loaded models to add missing heads.
+    bool allow_loaded_model_modification = 3;
+
+    // HelNet model parameters.
+    int32 num_layers = 4;
+
+    bool use_pooling = 5;
+
+    bool use_batch_norm = 6;
+
+    bool remove_head = 35;
+
+    string byom_model = 31;
+    // Float between 0 and 1. Fraction of the input units to drop.
+    float dropout_rate = 7;
+    string activation = 21;
+    message TrainingPrecision {
+        // Define the floatx setting for Maglev backend.
+        enum BackendFloatx {
+            INVALID = 0;
+            FLOAT16 = 1;
+            FLOAT32 = 2;
+        }
+        BackendFloatx backend_floatx = 1;
+    }
+
+    // Switch between FP16 / FP32 training.
+    TrainingPrecision training_precision = 10;
+
+    // Freeze batch norm layer.
+    bool freeze_bn = 11;
+
+    //  Freeze blocks in templates that support block-wise supporting.
+    repeated float freeze_blocks = 12;
+
+    // Model template to use for feature extractor.
+    string arch = 13;
+
+    // Pretrained model should load graph as well or just weights.
+    bool load_graph = 14;
+
+    // parameter to set all shortcuts to 1x1 projection layers.
+    bool all_projections = 15;
+    bool enable_qat = 29;
+    int32 model_input_height = 16;
+    int32 model_input_width = 17;
+    int32 model_input_channels = 19;
+    string pruned_model_path = 20;
+    enum KernelInitializer {
+        GLOROT_UNIFORM = 0;
+        HE_NORMAL = 1;
+        HE_UNIFORM = 2;
+    }
+    KernelInitializer initializer = 23;
+
+}

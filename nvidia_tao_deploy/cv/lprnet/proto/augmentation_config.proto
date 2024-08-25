@@ -1,0 +1,17 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+//next index: 10
+message AugmentationConfig {
+    int32 output_width=1;
+    int32 output_height=2;
+    int32 output_channel=3;
+
+    int32 max_rotate_degree=4;
+    float rotate_prob=6;
+    repeated int32 gaussian_kernel_size=7;
+    float blur_prob=8;
+    float reverse_color_prob=9;
+    float keep_original_prob=5;
+}

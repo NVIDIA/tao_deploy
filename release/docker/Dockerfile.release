@@ -1,0 +1,35 @@
+FROM nvcr.io/nvstaging/tao/tao_deploy_base_image@sha256:132c5d4fcd1a80409fd7a624107e6bfbbee75009b333fc216f35ad8e0ee8e37a
+
+# Installing the TAO Toolkit source code packages.
+WORKDIR /opt/nvidia
+COPY dist/*.whl /opt/nvidia/wheels/
+RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
+    && rm *.whl
+
+# NGC Security scan related fixes.
+# Low-level packages in apt are updated to resolve published security vulnerabilities ASAP
+# We retrieve these updates and upgrade the critical/high vulnerability ones
+RUN apt-get update && \
+    apt --only-upgrade install linux-libc-dev -y && \
+    apt --only-upgrade install curl -y && \
+    apt --only-upgrade install libc-bin -y && \
+    apt --only-upgrade install libc6-dev -y && \
+    apt --only-upgrade install libc6 -y && \
+    apt --only-upgrade install libc-dev-bin -y && \
+    apt --only-upgrade install libcurl3-gnutls -y && \
+    apt --only-upgrade install libcurl4 -y
+
+RUN rm -rf /opt/nvidia/entrypoint.d/*.txt
+COPY release/docker/entrypoint.d/* /opt/nvidia/entrypoint.d/
+
+RUN python -m pip uninstall graphviz -y
+
+ENV NVIDIA_PRODUCT_NAME "TAO Toolkit"
+ENV TAO_TOOLKIT_VERSION="5.2.0"
+ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
+ENV TAO_TELEMETRY_SERVER="https://api.tao.ngc.nvidia.com"
+
+# Microservices entrypoint
+ENV FLASK_APP=/usr/local/lib/python3.10/dist-packages/nvidia_tao_deploy/api/app.py 
+
+CMD [ "/bin/bash" ]

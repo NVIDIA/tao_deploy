@@ -1,0 +1,32 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message TrainingConfig {
+    //required
+    uint32 train_batch_size = 1;
+    uint32 iterations_per_loop = 2;
+    bool use_xla = 3;
+    bool disable_logging = 4;
+    string checkpoint = 5;
+    uint32 stop_at_epoch = 6;
+    bool resume = 7;
+    uint32 checkpoint_period = 8;
+    uint32 keep_checkpoint_max = 9;
+    uint32 num_examples_per_epoch = 10;
+    uint32 num_epochs = 11;
+    string skip_checkpoint_variables = 12;
+    uint32 profile_skip_steps = 13;
+    uint32 tf_random_seed = 14;
+    float moving_average_decay = 15;
+    float lr_warmup_epoch = 16;
+    float lr_warmup_init = 17;
+    float learning_rate = 18;
+    bool amp = 19;
+    float l2_weight_decay = 20;
+    float l1_weight_decay = 21;
+    string pruned_model_path = 22;
+    float clip_gradients_norm = 23;
+    float momentum = 24;
+    uint32 logging_frequency = 25;
+}

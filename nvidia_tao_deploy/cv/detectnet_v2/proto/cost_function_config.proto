@@ -1,0 +1,40 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* cost_function_config.proto: Cost function parameters for each objective and class.
+*
+*/
+
+syntax = "proto3";
+
+message CostFunctionConfig {
+    message TargetClass {
+        // The order of target classes in CostFunctionParameters defines the order they appear in
+        // network predictions.
+        string name = 1;
+
+        float class_weight = 2;
+
+        float coverage_foreground_weight = 3;  // Weight relative to background (cov == 0) pixels.
+
+        message Objective {
+            // Objectives must match the set of objectives defined in model.py
+            // compute_component_costs. Order is not important.
+            string name = 1;
+
+            float initial_weight = 2;
+
+            float weight_target = 3;
+        }
+
+        repeated Objective objectives = 4;
+    }
+
+    repeated TargetClass target_classes = 1;
+
+    bool enable_autoweighting = 2;
+
+    float max_objective_weight = 3;
+
+    float min_objective_weight = 4;
+}

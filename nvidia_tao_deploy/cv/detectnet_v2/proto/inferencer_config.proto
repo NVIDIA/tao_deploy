@@ -1,0 +1,69 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* inferencer_config.proto: Protocol buffer definition to set up the model handler
+* while running inference.
+*/
+
+syntax = "proto3";
+
+// Defining parameters for int8 calibrator
+message CalibratorConfig{
+    string calibration_cache = 1;
+    string calibration_tensorfile = 2;
+    int32 n_batches = 3;
+}
+
+// Defining parameters relevant to TLT
+message TLTConfig {
+    string model = 1;
+}
+
+// Defining relevant config to configure the TensorRT inferencer.
+message TensorRTConfig{
+    // Defining possible TRT parsers
+    enum Parser {
+        CAFFE = 0;
+        UFF = 1;
+        ETLT = 2;
+    }
+    Parser parser = 1;
+
+    // Defining model paths.
+    string caffemodel = 2;
+    string prototxt = 3;
+    string uff_model = 4;
+    string etlt_model = 5;
+
+    // Defining possible backend datatypes
+    enum BackendDataType {
+        FP32 = 0;
+        FP16 = 1;
+        INT8 = 2;
+    }
+    BackendDataType backend_data_type = 6;
+
+    // Engine parameter.
+    bool save_engine = 7;
+    string trt_engine = 8;
+
+    // int8 calibrator config
+    CalibratorConfig calibrator_config = 9;
+}
+// Defining model related parameters to configure TRT or TLT inferencer
+message InferencerConfig {
+  // Defining input output nodes.
+  oneof model_config_type {
+    TLTConfig tlt_config = 1;
+    TensorRTConfig tensorrt_config = 2;
+  }
+  repeated string input_nodes = 3;
+  repeated string output_nodes = 4;
+  int32 batch_size = 5;
+  int32 image_height = 6;
+  int32 image_width = 7;
+  int32 image_channels = 8;
+  int32 gpu_index = 9;
+  repeated string target_classes = 10;
+  int32 stride = 11;
+}

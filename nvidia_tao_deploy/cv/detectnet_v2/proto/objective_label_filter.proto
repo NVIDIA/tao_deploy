@@ -1,0 +1,25 @@
+// Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
+
+/**
+* objective_label_filter.proto: Contains necessary info to define a structure that will apply the
+*  defined filters to the correct classes and objectives.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/detectnet_v2/proto/label_filter.proto";
+
+message ObjectiveLabelFilter {
+
+    // Extend original LabelFilter proto with fields pertaining to the model.
+    message ObjectiveLabelFilterConfig {
+        LabelFilter label_filter = 1;
+
+        repeated string target_class_names = 2;
+        repeated string objective_names = 3;
+    }
+
+    repeated ObjectiveLabelFilterConfig objective_label_filter_configs = 1;
+    float mask_multiplier = 2;
+    bool preserve_ground_truth = 3;
+}

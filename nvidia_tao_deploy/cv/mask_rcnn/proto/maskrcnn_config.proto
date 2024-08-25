@@ -1,0 +1,40 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+syntax = "proto3";
+
+message MaskRCNNConfig {
+    float rpn_box_loss_weight = 1; 
+    float fast_rcnn_box_loss_weight = 2; 
+    float mrcnn_weight_loss_mask = 3; 
+    bool freeze_bn = 4; 
+    string bbox_reg_weights = 5; 
+    string aspect_ratios = 6; 
+    uint32 gt_mask_size = 7;
+    float rpn_positive_overlap = 8;
+    float rpn_negative_overlap = 9;
+    uint32 rpn_batch_size_per_im = 10;
+    float rpn_fg_fraction = 11;
+    float rpn_min_size = 12;
+    uint32 batch_size_per_im = 13;
+    float fg_fraction = 14;
+    float fg_thresh = 15;
+    float bg_thresh_hi = 16;
+    float bg_thresh_lo = 17;
+    uint32 fast_rcnn_mlp_head_dim = 18;
+    bool include_mask = 19;
+    uint32 mrcnn_resolution = 20;
+    uint32 train_rpn_pre_nms_topn = 21;
+    uint32 train_rpn_post_nms_topn = 22;
+    float train_rpn_nms_threshold = 23;
+    uint32 test_detections_per_image = 24; 
+    float test_nms = 25; 
+    uint32 test_rpn_pre_nms_topn = 26; 
+    uint32 test_rpn_post_nms_topn = 27; 
+    float test_rpn_nms_thresh = 28; 
+    uint32 min_level = 29; 
+    uint32 max_level = 30; 
+    uint32 num_scales = 31; 
+    uint32 anchor_scale = 32; 
+    string arch = 33;
+    uint32 nlayers = 34;
+    string freeze_blocks = 35;
+}

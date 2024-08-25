@@ -1,0 +1,40 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+//20
+message SSDConfig {
+    //optional
+    string aspect_ratios = 1;
+    //optional
+    string aspect_ratios_global = 2;
+    //optional
+    string scales = 3;
+    //optional
+    float min_scale = 4;
+    float max_scale = 5;
+    //required
+    bool two_boxes_for_ar1 = 6;
+    //required
+    string steps = 7;
+    //required
+    bool clip_boxes = 8;
+    //required
+    string variances = 9;
+    //required
+    string offsets = 10;
+    //required
+    string mean_color = 11;
+    string arch = 12;
+    uint32 nlayers = 13;
+    uint32 pred_num_channels = 14;
+
+    //required
+    float alpha = 15;
+    float neg_pos_ratio = 16;
+    float pos_iou_thresh = 17;
+    float neg_iou_thresh = 20;
+
+    repeated uint32 freeze_blocks = 18;
+    bool freeze_bn = 19;
+}

@@ -1,0 +1,27 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//learning rate scheduler config
+
+syntax = "proto3";
+
+
+message SoftStartAnnealingConfig {
+    float base_lr = 1;
+    float start_lr = 2;
+    float soft_start = 3;
+    repeated float annealing_points = 4;
+    float annealing_divider = 5;
+}
+
+message StepLrConfig {
+    float base_lr = 1;
+    float gamma = 2;
+    float step_size = 3;
+}
+
+message LRConfig {
+oneof lr_config {
+    SoftStartAnnealingConfig soft_start = 1;
+    StepLrConfig step = 2;
+}
+}

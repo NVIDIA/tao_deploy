@@ -1,0 +1,26 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message DataSource
+{
+    string label_directory_path = 1;
+    string image_directory_path = 2;
+    string root_path = 3;
+    string tfrecords_path = 4;
+}
+
+message DatasetConfig {
+    // Datasources
+    // Note that paths should be relative to the DATA_ROOT path
+    repeated DataSource data_sources = 1;
+
+    map<string, string> target_class_mapping = 2;
+
+    repeated DataSource validation_data_sources = 3;
+
+    bool include_difficult_in_training = 4;
+
+    // data loader type: kitti or coco
+    string type = 5;
+}

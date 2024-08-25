@@ -1,0 +1,9 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//tensorrt inference config
+
+syntax = "proto3";
+
+message TrtInference {
+    string trt_engine = 1;
+}

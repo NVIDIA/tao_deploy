@@ -1,0 +1,44 @@
+
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+//model config for FasterRCNN
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/faster_rcnn/proto/input_image.proto";
+
+
+message AnchorBoxConfig {
+    repeated float scale = 1;
+    repeated float ratio = 2;
+}
+    
+message RoiPoolingConfig {
+    uint32 pool_size = 1;
+    bool pool_size_2x = 2;
+}
+
+message Activation {
+    string activation_type = 1;
+    map<string, float> activation_parameters = 2;
+}
+
+message ModelConfig {
+    InputImageConfig input_image_config = 1;
+    string arch = 2;
+    AnchorBoxConfig anchor_box_config = 3;
+    uint32 roi_mini_batch = 4;
+    uint32 rpn_stride = 5;
+    bool freeze_bn = 6;
+    float dropout_rate = 17;
+    float drop_connect_rate = 18;
+    string rpn_cls_activation_type = 7;
+    repeated float freeze_blocks = 9;
+    bool use_bias = 10;
+    RoiPoolingConfig roi_pooling_config = 11;
+    bool rfcn_mode = 12;
+    bool tf_proposal_layer = 13;
+    bool all_projections = 14;
+    bool use_pooling = 15;
+    Activation activation = 19;
+}

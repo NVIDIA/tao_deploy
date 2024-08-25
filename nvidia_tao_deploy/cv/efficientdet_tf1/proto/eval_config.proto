@@ -1,0 +1,15 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+syntax = "proto3";
+
+message EvalConfig {
+    //required
+    uint32 min_eval_interval = 1;
+    uint32 eval_timeout = 2;
+    uint32 eval_batch_size = 3;
+    uint32 eval_epoch_cycle = 4;
+    bool eval_after_training = 5;
+    uint32 eval_samples = 6;
+    float min_score_thresh = 7;
+    uint32 max_detections_per_image = 8;
+}

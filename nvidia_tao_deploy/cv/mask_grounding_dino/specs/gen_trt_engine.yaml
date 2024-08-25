@@ -1,0 +1,19 @@
+results_dir: "???"
+dataset:
+  batch_size: -1
+  augmentation:
+    input_std: [0.229, 0.224, 0.225]
+gen_trt_engine:
+  gpu_id: 0
+  onnx_file: "???"
+  trt_engine: "???"
+  input_channel: 3
+  input_width: 960
+  input_height: 544
+  batch_size: -1
+  tensorrt:
+    data_type: fp32
+    workspace_size: 10240
+    min_batch_size: 1
+    opt_batch_size: 1
+    max_batch_size: 2

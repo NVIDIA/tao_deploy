@@ -1,0 +1,37 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a classification experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/classification_tf1/proto/visualizer_config.proto";
+import "nvidia_tao_deploy/cv/classification_tf1/proto/lr_config.proto";
+import "nvidia_tao_deploy/cv/classification_tf1/proto/optimizer_config.proto";
+import "nvidia_tao_deploy/cv/classification_tf1/proto/regularizer_config.proto";
+
+message TrainConfig {
+    string train_dataset_path = 1;
+    string val_dataset_path = 2;
+    string pretrained_model_path = 3;
+    OptimizerConfig optimizer = 4;
+    uint32 batch_size_per_gpu = 5;
+    uint32 n_epochs = 6;
+    uint32 n_workers = 7;
+    RegConfig reg_config = 8;
+    LRConfig lr_config = 9;
+    uint32 random_seed = 10;
+    bool enable_random_crop = 11;
+    bool enable_center_crop = 14;
+    bool enable_color_augmentation = 15;
+    float label_smoothing = 12;
+    string preprocess_mode = 13;
+    float mixup_alpha = 16;
+    repeated float model_parallelism = 17;
+    map<string, float> image_mean = 18;
+    bool disable_horizontal_flip = 19;
+    VisualizerConfig visualizer = 20;
+}

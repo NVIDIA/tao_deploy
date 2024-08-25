@@ -1,0 +1,34 @@
+encryption_key: "???"
+results_dir: "???"
+dataset:
+  num_classes: 4
+  batch_size: -1
+  augmentation:
+    input_std: [0.229, 0.224, 0.225]
+model:
+  backbone: fan_small
+  num_feature_levels: 4
+  dec_layers: 6
+  enc_layers: 6
+  num_queries: 900
+  dropout_ratio: 0.0
+  dim_feedforward: 2048
+gen_trt_engine:
+  gpu_id: 0
+  onnx_file: "???"
+  trt_engine: "???"
+  input_channel: 3
+  input_width: 960
+  input_height: 544
+  tensorrt:
+    data_type: int8
+    workspace_size: 1024
+    min_batch_size: 1
+    opt_batch_size: 10
+    max_batch_size: 10
+    calibration:
+      cal_image_dir:
+        - "???"
+      cal_cache_file: "???"
+      cal_batch_size: 10
+      cal_batches: 1000

@@ -1,0 +1,33 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* visualizer_config.proto: Protocol buffer definition for training visualizations.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/common/proto/clearml_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/wandb_config.proto";
+
+message VisualizerConfig {
+    // Master switch.
+    bool enabled = 1;
+
+    // Number of images to add to Tensorboard visualization.
+    uint32 num_images = 2;
+    uint32 scalar_logging_frequency = 3;
+    uint32 infrequent_logging_frequency = 4;
+
+    message TargetClassConfig {
+        // Grid cells with coverage lower than this threshold will be ignored.
+        // Set this to the same value as ClusteringConfig.coverage_threshold to
+        // match clustering input.
+        float coverage_threshold = 1;
+    }
+    map<string, TargetClassConfig> target_class_config = 5;
+
+    WandBConfig wandb_config = 6;
+
+    ClearMLConfig clearml_config = 7;
+
+}

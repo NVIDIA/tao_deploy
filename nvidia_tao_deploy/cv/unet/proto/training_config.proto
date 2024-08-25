@@ -1,0 +1,97 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying training parameters.
+*
+* Allows the user defining the experiment to specify:
+*  -- Batch size and training epoch target
+*  -- Learning rate and regularization
+*  -- The optimizer to be used, with relevant hyperparameters
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/unet/proto/optimizer_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/regularizer_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/visualizer_config.proto";
+
+
+
+message TrainingConfig {
+
+    // Per GPU minibatch size.
+    uint32 batch_size = 1;
+
+    // Number of training epochs.
+    uint32 num_epochs = 2;
+
+    // Regularizer.
+    RegularizerConfig regularizer = 4;
+
+    // Optimizer.
+    OptimizerConfig optimizer = 5;
+
+    // Interval to checkpoint training model.
+    uint32 checkpoint_interval = 7;
+
+    //Max steps used to save a checkpoint
+    uint32 max_steps = 8;
+
+    //Max epochs used to save a checkpoint
+    uint32 epochs = 19;
+
+    //The number of steps to log
+    uint32 log_summary_steps = 9;
+
+    //Augment bool parameter
+    bool augment= 10;
+
+    //Use xla compiler
+    bool use_xla= 11;
+
+    //warmup steps
+    uint32 warmup_steps = 12;
+
+    //Use tf amp
+    bool use_amp = 13;
+
+    //warmup steps
+    float learning_rate = 14;
+
+    //weight decay
+    float weight_decay = 15;
+
+    //use trt bool
+    bool use_trt = 16;
+
+    //cross val idx
+    bool crossvalidation_idx = 17;
+
+    //the type of training loss
+     string loss = 18;
+
+    message CosineDecayConfig {
+      float alpha = 1;
+      int32 decay_steps = 2;
+      }
+
+    message ExponentialDecayConfig {
+        float decay_rate = 1;
+        int32 decay_steps = 2;
+        }
+    message LRSchedulerConfig {
+          oneof lr_scheduler {
+          ExponentialDecayConfig exponential_decay = 1;
+          CosineDecayConfig cosine_decay =2;
+            }
+     }
+
+    bool weights_monitor = 23;
+    LRSchedulerConfig lr_scheduler = 25;
+
+    VisualizerConfig visualizer = 27;
+
+    uint32 buffer_size = 28;
+
+    bool data_options = 29;
+}

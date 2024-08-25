@@ -1,0 +1,14 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying ADAM optimizer parameters.
+*/
+
+syntax = "proto3";
+
+message AdamOptimizerConfig {
+    float epsilon = 1;
+    float beta1 = 2;
+    float beta2 = 3;
+    bool amsgrad = 4;
+}

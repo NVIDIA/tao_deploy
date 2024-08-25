@@ -1,0 +1,31 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* kitti_config.proto: Protocol buffer definition for specifying config for converting
+* KITTI datasets to .tfrecords.
+*
+* Allows the user to specify:
+*  -- Path to images and labels
+*  -- Class mapping
+*  -- Number of partitions (folds) and shards
+*/
+
+syntax = "proto3";
+
+message KITTIConfig {
+
+    // PATH TO FILES
+    string root_directory_path = 1;
+    string image_dir_name = 2;
+    string label_dir_name = 3;
+    string point_clouds_dir = 4;
+    string calibrations_dir = 5;
+    string kitti_sequence_to_frames_file = 6;
+    string image_extension = 7;
+
+    // The number of partitions (folds) and shards.
+    uint32 num_partitions = 8;
+    uint32 num_shards = 9;
+    string partition_mode = 10;
+    float val_split = 11;
+}

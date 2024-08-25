@@ -1,0 +1,61 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* augmentation_config.proto: Protocol buffer definition for data augmentation.
+*/
+
+syntax = "proto3";
+
+message AugmentationConfig {
+    message Preprocessing {
+        // Output image size.
+        uint32 output_image_width = 1;
+        uint32 output_image_height = 2;
+        uint32 output_image_min = 14;
+        uint32 output_image_max = 15;
+        bool enable_auto_resize = 16;
+        uint32 output_image_channel = 13;
+        // Part of the image to crop
+        uint32 crop_left = 4;
+        uint32 crop_top = 5;
+        uint32 crop_right = 6;
+        uint32 crop_bottom = 7;
+
+        // Minimum bbox size.
+        float min_bbox_width = 8;
+        float min_bbox_height = 9;
+        // Scale factor for resizing images after crop.
+        float scale_width = 10;
+        float scale_height = 11;
+    }
+    Preprocessing preprocessing = 1;
+
+    message SpatialAugmentation {
+        // Probability of flipping an image horizontally/vertically.
+        float hflip_probability = 1;
+        float vflip_probability = 2;
+        // Minimum and maximum scales for zoom augmentation. Set min=max=1 to keep original size.
+        float zoom_min = 3;
+        float zoom_max = 4;
+        // Maximum horizontal/vertical translation in pixels.
+        float translate_max_x = 5;
+        float translate_max_y = 6;
+        float rotate_rad_max = 7;
+        float rotate_probability = 8;
+    }
+    SpatialAugmentation spatial_augmentation = 2;
+
+    message ColorAugmentation {
+        // Standard deviation for color shift augmentation.
+        float color_shift_stddev = 1;
+        // Standard deviation for hue rotation augmentation, in degrees.
+        float hue_rotation_max = 2;
+        // Maximum value for saturation shift augmentation.
+        float saturation_shift_max = 3;
+        // Maximum scale shift for contrast augmentation. Set to 0 to disable.
+        float contrast_scale_max = 5;
+        // Center point for contrast augmentation. Set to 0.5 to disable.
+        float contrast_center = 8;
+    }
+    ColorAugmentation color_augmentation = 3;
+}

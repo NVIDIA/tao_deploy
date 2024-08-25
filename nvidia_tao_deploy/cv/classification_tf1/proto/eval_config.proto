@@ -1,0 +1,18 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for a MakeNet experiment.
+*/
+
+syntax = "proto3";
+
+message EvalConfig {
+    uint32 top_k = 1;
+    string eval_dataset_path = 2;
+    string model_path = 3;
+    uint32 batch_size = 4;
+    uint32 n_workers = 5;
+    bool enable_center_crop = 6;
+}

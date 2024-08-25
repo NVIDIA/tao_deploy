@@ -1,0 +1,39 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* dataset_config.proto: Protocol buffer definition for specifying parameters for dataset
+* to use for training and evaluation.
+*
+* Allows the user to specify:
+*  -- Dimensions and format of the images
+*  -- Paths to directory with images and pattern for TFRecords files
+*/
+
+syntax = "proto3";
+
+message YOLOv3DataSource
+{
+    oneof labels_format {
+        string label_directory_path = 1;
+        string tfrecords_path = 2;
+    }
+    string image_directory_path = 3;
+    string root_path = 4;
+    float source_weight = 5;
+}
+
+message YOLOv3DatasetConfig {
+    // Datasources
+    // Note that paths should be relative to the DATA_ROOT path
+    repeated YOLOv3DataSource data_sources = 1;
+
+    map<string, string> target_class_mapping = 2;
+
+    uint32 validation_fold = 4;
+    repeated YOLOv3DataSource validation_data_sources = 3;
+    bool include_difficult_in_training = 7;
+    // data loader type: kitti or coco
+    string type = 5;
+    string image_extension = 6;
+    bool is_monochrome = 8;
+}

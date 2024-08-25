@@ -1,0 +1,33 @@
+results_dir: ???
+train:
+  qat: False
+dataset:
+  preprocess_mode: 'torch'
+  image_mean: [0.485, 0.456, 0.406]
+evaluate:
+  dataset_path: ???
+  trt_engine: ???
+  top_k: 1
+  batch_size: 16
+  classmap: ???
+gen_trt_engine:
+  onnx_file: ???
+  trt_engine: ???
+  tensorrt:
+    max_workspace_size: 2
+    data_type: 'fp16'
+    min_batch_size: 1
+    opt_batch_size: 16
+    max_batch_size: 16
+  cal_image_dir: ???
+  cal_cache_file: ???
+  cal_data_file: ???
+  batch_size: 16
+  batches: 3125
+  max_batch_size: 64
+inference:
+  model_path: ???
+  image_dir: ???
+  classmap: ???
+data_format: 'channels_last'
+verbose: True

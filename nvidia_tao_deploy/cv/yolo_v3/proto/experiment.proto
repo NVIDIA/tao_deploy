@@ -1,0 +1,37 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for an YOLO experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/yolo_v3/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/eval_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/nms_config.proto";
+import "nvidia_tao_deploy/cv/yolo_v3/proto/yolov3_config.proto";
+import "nvidia_tao_deploy/cv/yolo_v3/proto/augmentation_config.proto";
+import "nvidia_tao_deploy/cv/yolo_v3/proto/dataset_config.proto";
+
+message Experiment {
+	// Set-up dataloader configuration.
+	YOLOv3DatasetConfig dataset_config = 1;
+	AugmentationConfig augmentation_config = 2;
+
+	// Set-up training op.
+	TrainingConfig training_config = 3;
+
+	// Required
+	EvalConfig eval_config = 4;
+
+	// Required
+	NMSConfig nms_config = 5;
+
+	// Required
+	YOLOv3Config yolov3_config = 6;
+
+	uint32 random_seed = 7;
+}
+

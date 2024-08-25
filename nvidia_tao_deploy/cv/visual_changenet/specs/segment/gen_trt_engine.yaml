@@ -1,0 +1,23 @@
+encryption_key: tlt_encode
+results_dir: "???"
+dataset:
+  segment:
+    num_classes: 2
+    batch_size: -1
+model:
+  backbone:
+    type: "fan_small_12_p4_hybrid"
+gen_trt_engine:
+  gpu_id: 0
+  onnx_file: "???"
+  trt_engine: "???"
+  batch_size: -1
+  input_channel: 3
+  input_width: 256
+  input_height: 256
+  tensorrt:
+    data_type: FP32
+    workspace_size: 1024
+    min_batch_size: 1
+    opt_batch_size: 10
+    max_batch_size: 10

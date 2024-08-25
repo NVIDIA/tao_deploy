@@ -1,0 +1,59 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* dataset_config.proto: Protocol buffer definition for specifying parameters for dataset
+* to use for training and evaluation.
+*
+* Allows the user to specify:
+*  -- Dimensions and format of the images
+*  -- Paths to directory with images and pattern for TFRecords files
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/unet/proto/data_class_config.proto";
+import "nvidia_tao_deploy/cv/unet/proto/augmentation_config.proto";
+
+message DataSource
+{
+    string image_path = 1;
+    string masks_path = 2;
+}
+message TrainDataSource
+{
+    repeated DataSource data_source = 1;
+}
+
+message ValDataSource
+{
+    repeated DataSource data_source = 1;
+}
+
+message TestDataSource
+{
+    repeated DataSource data_source = 1;
+}
+
+
+message DatasetConfig {
+     bool augment = 3;
+     bool filter_data = 31;
+     string dataset = 10;
+     string dataloader = 20;
+     string preprocess = 25;
+     bool resize_padding = 29;
+     string resize_method = 30;
+     string input_image_type = 11;
+     TrainDataSource train_data_sources = 1;
+     ValDataSource val_data_sources = 2;
+     TestDataSource test_data_sources = 4;
+    DataClassConfig data_class_config = 18;
+    AugmentationConfig augmentation_config = 28;
+     string train_images_path = 12;
+    string train_masks_path = 13;
+    string val_images_path = 14;
+    string val_masks_path = 15;
+    string test_images_path = 16;
+    string test_masks_path = 17;
+
+}

@@ -1,0 +1,42 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* experiment.proto: Protocol buffer definition for a top-level message
+* encapsulating multiple other message types to form a complete specification
+* for an SSD experiment.
+*/
+
+syntax = "proto3";
+
+import "nvidia_tao_deploy/cv/ssd/proto/augmentation_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/detection_sequence_dataset_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/training_config.proto";
+import "nvidia_tao_deploy/cv/common/proto/nms_config.proto";
+import "nvidia_tao_deploy/cv/ssd/proto/eval_config.proto";
+import "nvidia_tao_deploy/cv/ssd/proto/ssd_config.proto";
+
+message Experiment {
+
+	uint32 random_seed = 1;
+
+	// Set-up dataloader configuration.
+	DatasetConfig dataset_config = 2;
+	AugmentationConfig augmentation_config = 3;
+
+	// Set-up training op.
+	TrainingConfig training_config = 4;
+
+	// Optional
+	EvalConfig eval_config = 5;
+
+	// Optional
+	NMSConfig nms_config = 6;
+
+	// Required
+	oneof network {
+		SSDConfig ssd_config = 7;
+		SSDConfig dssd_config = 8;
+	}
+
+}
+

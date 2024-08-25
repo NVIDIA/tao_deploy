@@ -1,0 +1,22 @@
+// Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+
+/**
+* Protocol buffer definition for specifying soft start annealing learning rate schedule parameters.
+*/
+
+syntax = "proto3";
+
+message SoftStartAnnealingScheduleConfig {
+    // Learning rate at the beginning and the end of training.
+    float min_learning_rate = 1;
+
+    // Learning rate in the middle of training.
+    float max_learning_rate = 2;
+
+    // The progress at which learning rate achieves max_learning_rate. Progress is in the [0,1]
+    // range.
+    float soft_start = 3;
+
+    // The progress at which learning rate starts to drop towards min_learning_rate.
+    float annealing = 4;
+}

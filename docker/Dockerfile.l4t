@@ -1,0 +1,79 @@
+FROM nvcr.io/nvidia/l4t-tensorrt:r8.5.2.2-devel
+
+RUN apt-get update && \
+    apt-get install -y pkg-config && \
+    apt-get install -y git && \
+    apt-get install -y zlib1g && \
+    apt-get install -y zlib1g-dev && \
+    apt-get install -y cmake && \
+    apt-get install -y python3-dev && \
+    apt-get install -y g++ && \
+    apt-get install -y wget && \
+    apt-get install -y protobuf-compiler && \
+    apt-get install -y libprotobuf-dev && \
+    apt-get install -y libopenmpi-dev && \
+    apt-get install -y libcudnn8-dev && \
+    apt-get install -y libpthread-stubs0-dev && \
+    apt-get install -y build-essential 
+
+RUN DEBIAN_FRONTEND="noninteractive" TZ="America/New_York" apt-get install ffmpeg libsm6 libxext6  -y
+# upgrade pip
+RUN pip install --upgrade pip
+
+# Copy requirement and install
+WORKDIR /workspace/
+COPY docker/requirements-l4t-dev.txt /workspace/
+RUN pip install nvidia-pyindex cython
+RUN pip install -r requirements-l4t-dev.txt && \
+    rm -rf requirements-l4t-dev.txt
+
+RUN pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff-tao-encryption/0.1.7/nvidia_eff_tao_encryption-0.1.7-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+RUN pip install https://urm.nvidia.com/artifactory/sw-eff-pypi/nvidia-eff/0.6.2/nvidia_eff-0.6.2-py38-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+
+# Upgrading TensorRT to 8.5.2.2
+ARG TRT_VERSION_MAJOR=8
+ARG TRT_VERSION_MINOR=5
+ARG TRT_VERSION_PATCH=2
+ARG TRT_VERSION_BUILD=2
+ARG TRT_VERSION_MAJOR_MINOR=$TRT_VERSION_MAJOR.$TRT_VERSION_MINOR
+ARG TRT_VERSION_MAJOR_MINOR_PARTCH=$TRT_VERSION_MAJOR.$TRT_VERSION_MINOR.$TRT_VERSION_PATCH
+ARG TRT_VERSION_FULL=$TRT_VERSION_MAJOR_MINOR_PARTCH.$TRT_VERSION_BUILD
+
+ARG CUDA_VERSION_MAJOR=11
+ARG CUDA_VERSION_MINOR=8
+ARG CUDA_VERSION_PATCH=0
+ARG CUDA_VERSION_BUILD=065
+ARG CUDA_VERSION_MAJOR_MINOR=$CUDA_VERSION_MAJOR.$CUDA_VERSION_MINOR
+ARG CUDA_VERSION_FULL=$CUDA_VERSION_MAJOR_MINOR.$CUDA_VERSION_PATCH.$CUDA_VERSION_BUILD
+
+ENV TRT_VERSION=$TRT_VERSION_MAJOR.$TRT_VERSION_MINOR.$TRT_VERSION_PATCH.$TRT_VERSION_BUILD+cuda$CUDA_VERSION_FULL
+
+ENV CC=/usr/bin/gcc
+RUN cd /opt
+#ENV TRT_TAG "release/$TRT_VERSION_MAJOR_MINOR"
+ENV TRT_TAG "release/8.6"
+RUN mkdir trt_oss_src && \
+   cd trt_oss_src && \
+   echo "$PWD Building TRT OSS..." && \
+   git clone -b $TRT_TAG https://github.com/nvidia/TensorRT TensorRT && \
+   cd TensorRT && \
+   git submodule update --init --recursive && \
+   mkdir -p build && cd build  && \
+   cmake .. -DTRT_LIB_DIR=/usr/lib/aarch64-linux-gnu/ -DTRT_OUT_DIR=`pwd` -DTRT_PLATFORM_ID=aarch64 -DCUDA_VERSION=$CUDA_VERSION_MAJOR_MINOR -DCUDNN_VERSION=8.6 && \
+   make -j8 && \
+   cp libnvinfer_plugin.so.8.6.* /usr/lib/aarch64-linux-gnu/libnvinfer_plugin.so.$TRT_VERSION_MAJOR_MINOR_PARTCH && \
+   cp libnvinfer_plugin_static.a /usr/lib/aarch64-linux-gnu/libnvinfer_plugin_static.a && \
+   # cp libnvonnxparser.so.$TRT_VERSION_MAJOR_MINOR.* /usr/lib/aarch64-linux-gnu/libnvonnxparser.so.$TRT_VERSION_MAJOR_MINOR_PARTCH && \
+   cp libnvcaffeparser.so.8.6.* /usr/lib/aarch64-linux-gnu/libnvcaffeparser.so.$TRT_VERSION_MAJOR_MINOR_PARTCH && \
+   cp trtexec /usr/local/bin/ && \
+   rm -rf trt_oss_src
+
+# Create user that will run commands
+ARG user_id=1000
+ARG user_name=developer
+ARG groups=developer:1000
+ARG home=/home/developer
+RUN echo "ALL   ALL = (ALL) NOPASSWD: ALL" > /etc/sudoers \
+    && mkdir -p "$(dirname $home)"
+WORKDIR /workspace/
+
