@@ -9,7 +9,7 @@ REGISTRY="nvcr.io"
 TENSORRT_VERSION="8.5.3.1"
 CUDA_VERSION=12.0
 TAO_VERSION="5.2.0"
-REPOSITORY="nvstaging/tao/tao-toolkit-deploy"
+REPOSITORY="nvidia/tao/tao-toolkit-deploy"
 BUILD_ID="01"
 tag="v${TAO_VERSION}-trt${TENSORRT_VERSION}-${BUILD_ID}-dev-cuda${CUDA_VERSION}"
 

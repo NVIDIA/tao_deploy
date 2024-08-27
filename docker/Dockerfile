@@ -76,11 +76,6 @@ RUN mkdir trt_oss_src && \
 #     pip install graphsurgeon --index-url https://pypi.ngc.nvidia.com && \
 #     pip install onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com
 
-# Installing TAO-Core
-COPY tao-core tao-core
-RUN cd tao-core && bash release/python/build_wheel.sh && \
-    find dist/ -name "nvidia_tao_core*.whl" -type f | xargs -n 1 pip install && \
-    rm -rf *
 
 WORKDIR /workspace/
 # Create user that will run commands

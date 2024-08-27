@@ -25,7 +25,7 @@ COPY release/docker/entrypoint.d/* /opt/nvidia/entrypoint.d/
 RUN python -m pip uninstall graphviz -y
 
 ENV NVIDIA_PRODUCT_NAME "TAO Toolkit"
-ENV TAO_TOOLKIT_VERSION="5.2.0"
+ENV TAO_TOOLKIT_VERSION="5.5.0"
 ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
 ENV TAO_TELEMETRY_SERVER="https://api.tao.ngc.nvidia.com"
 

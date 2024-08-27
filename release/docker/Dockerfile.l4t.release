@@ -1,4 +1,4 @@
-FROM gitlab-master.nvidia.com:5005/tlt/tao-deploy/tao_deploy_l4t_image@sha256:ea6aa51796f747916b85e6a25cd692e9f5704453e52166624e803d88f9e00402
+FROM nvcr.io/nvidia/tao/tao_toolkit:5.0.0-deploy-l4t-base
 
 # Installing the TAO Toolkit source code packages.
 WORKDIR /opt/nvidia
