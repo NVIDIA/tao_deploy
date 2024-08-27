@@ -1,4 +1,4 @@
-FROM nvcr.io/nvstaging/tao/tao_deploy_base_image@sha256:132c5d4fcd1a80409fd7a624107e6bfbbee75009b333fc216f35ad8e0ee8e37a
+FROM nvcr.io/nvidia/tao/tao-toolkit:5.5.0-deploy-base
 
 # Installing the TAO Toolkit source code packages.
 WORKDIR /opt/nvidia
