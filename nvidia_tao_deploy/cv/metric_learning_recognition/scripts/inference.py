@@ -94,7 +94,7 @@ def main(cfg: ExperimentConfig) -> None:
     logging.info("Loading gallery dataset...")
     trt_infer.train_knn(gallery_dl, k=top_k)
 
-    if cfg.inference.results_dir is not None:
+    if cfg.inference.results_dir:
         results_dir = cfg.inference.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_inference")

@@ -21,6 +21,7 @@ import json
 import pandas as pd
 import numpy as np
 
+from omegaconf import OmegaConf
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.classification_tf1.inferencer import ClassificationInferencer
@@ -72,7 +73,7 @@ def run_inference(cfg: ExperimentConfig) -> None:
     interpolation_method = cfg.model.resize_interpolation_method
     crop = "center" if cfg.dataset.augmentation.enable_center_crop else None
     data_format = cfg.data_format
-    image_mean = cfg.dataset.image_mean
+    image_mean = OmegaConf.to_container(cfg.dataset.image_mean)
     batch_size = cfg.evaluate.batch_size
 
     trt_infer = ClassificationInferencer(cfg.inference.trt_engine, data_format=data_format, batch_size=batch_size)

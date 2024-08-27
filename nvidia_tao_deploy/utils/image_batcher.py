@@ -174,6 +174,18 @@ class ImageBatcher:
             image = np.asarray(image, dtype=self.dtype)
             # [0-1] Normalization, Mean subtraction and Std Dev scaling are
             # part of the EfficientDet graph, so no need to do it during preprocessing here
+        elif self.preprocessor == "Mask2former":
+            orig_w, orig_h = image.size
+            image = image.resize((self.width, self.height), Image.BICUBIC)
+            image = np.asarray(image, dtype=self.dtype)
+            image = preprocess_input(
+                image,
+                data_format='channels_last',
+                img_mean=self.img_mean,
+                img_std=self.img_std,
+                mode='torch')
+            new_h, new_w, _ = image.shape
+            scale = (orig_h / new_h, orig_w / new_w)
         elif self.preprocessor == "DetectNetv2":
             image = image.resize((self.width, self.height), Image.LANCZOS)
             image = np.asarray(image, dtype=self.dtype)

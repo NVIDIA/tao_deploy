@@ -26,9 +26,7 @@ from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.optical_inspection.inferencer import OpticalInspectionInferencer
 from nvidia_tao_deploy.cv.optical_inspection.dataloader import OpticalInspectionDataLoader
-from nvidia_tao_deploy.cv.optical_inspection.config.default_config import (
-    OIExperimentConfig as ExperimentConfig
-)
+from nvidia_tao_deploy.cv.optical_inspection.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.visual_changenet.classification.utils import AOIMetrics
 from sklearn import metrics
 from tqdm import tqdm
@@ -50,7 +48,7 @@ def main(cfg: ExperimentConfig) -> None:
     engine_file = cfg.evaluate.trt_engine
     batch_size = cfg.evaluate.batch_size
     dataset_config = cfg.dataset
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "evaluate")

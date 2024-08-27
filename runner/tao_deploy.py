@@ -29,7 +29,7 @@ with open(os.path.join(ROOT_DIR, "docker/manifest.json"), "r") as m_file:
 
 DOCKER_REGISTRY = docker_config["registry"]
 DOCKER_REPOSITORY = docker_config["repository"]
-DOCKER_TAG = docker_config["tag"]
+DOCKER_DIGEST = docker_config["digest"]
 DOCKER_COMMAND = "docker"
 HOME_PATH = os.path.expanduser("~")
 MOUNTS_PATH = os.path.join(HOME_PATH, ".tao_mounts.json")
@@ -58,14 +58,14 @@ def format_mounts(mount_points):
 
 def check_image_exists(docker_image):
     """Check if the image exists locally."""
-    check_command = '{} images | grep "\\<{}\\>" | grep "{}" >/dev/null 2>&1'.format(DOCKER_COMMAND, docker_image, DOCKER_TAG)
+    check_command = '{} inspect --type=image {} >/dev/null 2>&1'.format(DOCKER_COMMAND, docker_image)
     rc = subprocess.call(check_command, stdout=sys.stderr, shell=True)
     return rc == 0
 
 
 def pull_base_container(docker_image):
     """Pull the default base container."""
-    pull_command = "{} pull {}:{}".format(DOCKER_COMMAND, docker_image, DOCKER_TAG)
+    pull_command = "{} pull {}@{}".format(DOCKER_COMMAND, docker_image, DOCKER_DIGEST)
     rc = subprocess.call(pull_command, stdout=sys.stderr, shell=True)
     return rc == 0
 
@@ -111,28 +111,24 @@ def get_docker_gpus_prefix(gpus):
     return gpu_string
 
 
-def create_base_docker():
-    """Function to create the base docker."""
-    create_command = "bash {}/docker/build.sh --build".format(ROOT_DIR)
-    try:
-        subprocess.run(create_command, stdout=sys.stderr, shell=True, check=True)
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Container build failed with error {e}")
-
-
 def instantiate_dev_docker(gpus, mount_file,
                            mount_cli_list,
                            env_var_list,
-                           command, ulimit=None,
-                           shm_size="16G", run_as_user=False):
+                           tag, command, ulimit=None,
+                           shm_size="16G", run_as_user=False,
+                           tty=True):
     """Instiate the docker container."""
-    docker_image = "{}/{}:{}".format(DOCKER_REGISTRY, DOCKER_REPOSITORY, DOCKER_TAG)
-
+    docker_image = "{}/{}@{}".format(DOCKER_REGISTRY, DOCKER_REPOSITORY, DOCKER_DIGEST)
+    if tag is not None:
+        docker_image = "{}/{}:{}".format(DOCKER_REGISTRY, DOCKER_REPOSITORY, tag)
     # Invoking the nvidia docker.
     gpu_string = get_docker_gpus_prefix(gpus)
 
     # Prefix for the run command.
-    run_command = "{} run -it --rm".format(DOCKER_COMMAND)
+    if tty:
+        run_command = "{} run -it --rm".format(DOCKER_COMMAND)
+    else:
+        run_command = "{} run --rm".format(DOCKER_COMMAND)
 
     # get default mount points.
     formatted_mounts = get_formatted_mounts(MOUNTS_PATH)
@@ -215,9 +211,15 @@ def parse_cli_args(args=None):
     )
 
     parser.add_argument(
-        "--mounts_file", 
-        help="Path to the mounts file.", 
-        default="", 
+        "--no-tty", 
+        dest="tty", 
+        action="store_false")
+    parser.set_defaults(tty=True)
+
+    parser.add_argument(
+        "--mounts_file",
+        help="Path to the mounts file.",
+        default="",
         type=str
     )
 
@@ -235,6 +237,12 @@ def parse_cli_args(args=None):
         default=False
     )
 
+    parser.add_argument(
+        "--tag",
+        help="The tag value for the local dev docker.",
+        default=None,
+        type=str
+    )
     parser.add_argument(
         "--ulimit",
         action='append',
@@ -258,17 +266,18 @@ def main(cl_args=None):
     # parse command line args.
     args = parse_cli_args(runner_args)
     docker_image = "{}/{}".format(DOCKER_REGISTRY, DOCKER_REPOSITORY)
-    
+    if args["tag"] is not None:
+        docker_image = "{}:{}".format(docker_image, args["tag"])
     if not check_image_exists(docker_image):
-        if not pull_base_container(docker_image):
-            print("The base container doesn't exist locally and the pull failed. Hence creating the base container")
-            create_base_docker()
+        assert pull_base_container(docker_image), "The base container doesn't exist locally and " "the pull failed."
     try:
         instantiate_dev_docker(
             args["gpus"], args["mounts_file"],
             args["volume"], args["env"],
-            command_args, args["ulimit"],
-            args["shm_size"], args["run_as_user"]
+            args["tag"], command_args,
+            args["ulimit"], args["shm_size"],
+            args["run_as_user"],
+            args["tty"]
         )
     except subprocess.CalledProcessError:
         # Do nothing - the errors are printed in entrypoint launch.

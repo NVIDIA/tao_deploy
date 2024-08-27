@@ -117,7 +117,7 @@ def main(cfg: ExperimentConfig) -> None:
         image_std=cfg.dataset.img_norm_cfg.std)
 
     # Create results directories
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_evaluate")

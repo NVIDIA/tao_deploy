@@ -54,8 +54,8 @@ def trt_output_process_fn(y_encoded,
     # TF1 keras_output_map()
     for i in range(len(target_classes)):
         key = target_classes[i]
-        out2cluster[key] = {'cov': output_meta_cov[:, i, :, :],
-                            'bbox': output_meta_bbox[:, 4 * i: 4 * i + 4, :, :]}
+        out2cluster[key] = {'cov': output_meta_cov[:, i, :, :],  # pylint: disable=possibly-used-before-assignment
+                            'bbox': output_meta_bbox[:, 4 * i: 4 * i + 4, :, :]}  # pylint: disable=possibly-used-before-assignment
 
     return out2cluster
 

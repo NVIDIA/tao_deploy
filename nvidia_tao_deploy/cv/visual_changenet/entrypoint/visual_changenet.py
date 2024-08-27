@@ -17,7 +17,12 @@
 import argparse
 from nvidia_tao_deploy.cv.visual_changenet import scripts
 
-from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_hydra import get_subtasks, launch
+from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_hydra import command_line_parser, get_subtasks, launch
+
+
+def get_subtask_list():
+    """Return the list of subtasks by inspecting the scripts package."""
+    return get_subtasks(scripts)
 
 
 def main():
@@ -29,11 +34,12 @@ def main():
         description="Train Adapt Optimize Deploy entrypoint for Visual ChangeNet"
     )
 
-    # Build list of subtasks by inspecting the scripts package.
-    subtasks = get_subtasks(scripts)
+    # Obtain the list of substasks
+    subtasks = get_subtask_list()
 
     # Parse the arguments and launch the subtask.
-    launch(parser, subtasks, network="visual_changenet")
+    args, unknown_args = command_line_parser(parser, subtasks)
+    launch(vars(args), unknown_args, subtasks, network="visual_changenet")
 
 
 if __name__ == '__main__':

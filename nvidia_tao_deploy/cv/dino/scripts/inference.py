@@ -60,7 +60,7 @@ def main(cfg: ExperimentConfig) -> None:
     classes = {c: i + 1 for i, c in enumerate(classmap)}
 
     # Create results directories
-    if cfg.inference.results_dir is not None:
+    if cfg.inference.results_dir:
         results_dir = cfg.inference.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_inference")

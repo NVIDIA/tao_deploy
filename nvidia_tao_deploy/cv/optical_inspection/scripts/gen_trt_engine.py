@@ -21,9 +21,8 @@ import tempfile
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.optical_inspection.engine_builder import OpticalInpsectionEngineBuilder
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.optical_inspection.config.default_config import (
-    OIExperimentConfig as ExperimentConfig
-)
+from nvidia_tao_deploy.cv.optical_inspection.hydra_config.default_config import ExperimentConfig
+
 from nvidia_tao_deploy.utils.decoding import decode_model
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',

@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from nvidia_tao_deploy.cv.ocdnet.config.default_config import ExperimentConfig
+from nvidia_tao_deploy.cv.ocdnet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.ocdnet.post_processing.seg_detector_representer import get_post_processing
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
@@ -68,7 +68,7 @@ class Inferencer:
         start = time.time()
         if self.is_trt:
             preds = self.model.predict({"input": image})["pred"]
-        box_list, score_list = self.post_process(batch, preds, is_output_polygon=is_output_polygon)
+        box_list, score_list = self.post_process(batch, preds, is_output_polygon=is_output_polygon)  # pylint: disable=possibly-used-before-assignment
         box_list, score_list = box_list[0], score_list[0]
         if len(box_list) > 0:
             if is_output_polygon:
@@ -130,7 +130,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name="ocdnet", mode="inference")
 def main(cfg: ExperimentConfig) -> None:
     """Run the inference process."""
-    if cfg.inference.results_dir is not None:
+    if cfg.inference.results_dir:
         results_dir = cfg.inference.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "inference")

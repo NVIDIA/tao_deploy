@@ -41,6 +41,10 @@ setuptools_packages = []
 for package_name in PACKAGE_LIST:
     setuptools_packages.extend(utils.find_packages(package_name))
 
+if(os.path.exists("pytransform_vax_001219")):
+    pyarmor_packages = ["pytransform_vax_001219"]
+    setuptools_packages += pyarmor_packages
+
 setuptools.setup(
     name=version_locals['__package_name__'],
     version=version_locals['__version__'],
@@ -79,8 +83,11 @@ setuptools.setup(
             'efficientdet_tf1=nvidia_tao_deploy.cv.efficientdet_tf1.entrypoint.efficientdet_tf1:main',
             'efficientdet_tf2=nvidia_tao_deploy.cv.efficientdet_tf2.entrypoint.efficientdet_tf2:main',
             'faster_rcnn=nvidia_tao_deploy.cv.faster_rcnn.entrypoint.faster_rcnn:main',
+            'grounding_dino=nvidia_tao_deploy.cv.grounding_dino.entrypoint.grounding_dino:main',
+            'mask_grounding_dino=nvidia_tao_deploy.cv.mask_grounding_dino.entrypoint.mask_grounding_dino:main',
             'lprnet=nvidia_tao_deploy.cv.lprnet.entrypoint.lprnet:main',
             'mask_rcnn=nvidia_tao_deploy.cv.mask_rcnn.entrypoint.mask_rcnn:main',
+            'mask2former=nvidia_tao_deploy.cv.mask2former.entrypoint.mask2former:main',
             'ml_recog=nvidia_tao_deploy.cv.metric_learning_recognition.entrypoint.metric_learning_recognition:main',
             'multitask_classification=nvidia_tao_deploy.cv.multitask_classification.entrypoint.multitask_classification:main',
             'ocdnet=nvidia_tao_deploy.cv.ocdnet.entrypoint.ocdnet:main',

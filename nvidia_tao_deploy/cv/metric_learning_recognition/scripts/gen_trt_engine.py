@@ -36,7 +36,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name='ml_recog', mode='gen_trt_engine')
 def main(cfg: ExperimentConfig) -> None:
     """Convert encrypted uff or onnx model to TRT engine."""
-    if cfg.gen_trt_engine.results_dir is not None:
+    if cfg.gen_trt_engine.results_dir:
         results_dir = cfg.gen_trt_engine.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "gen_trt_engine")

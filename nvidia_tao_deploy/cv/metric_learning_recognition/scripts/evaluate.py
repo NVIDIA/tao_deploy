@@ -165,7 +165,7 @@ def main(cfg: ExperimentConfig) -> None:
     # Store evaluation results into JSON
     eval_results = {"top_k_accuracy": scores,
                     "top_1_accuracy": scores_top1}
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_evaluate")

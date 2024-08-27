@@ -17,7 +17,12 @@
 import argparse
 from nvidia_tao_deploy.cv.optical_inspection import scripts
 
-from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_hydra import get_subtasks, launch
+from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_hydra import get_subtasks, launch, command_line_parser
+
+
+def get_subtask_list():
+    """Return the list of subtasks by inspecting the scripts package."""
+    return get_subtasks(scripts)
 
 
 def main():
@@ -29,16 +34,13 @@ def main():
         description="Train Adapt Optimize Deploy entrypoint for OpticalInpsection"
     )
 
-    # Build list of subtasks by inspecting the scripts package.
-    subtasks = get_subtasks(scripts)
+    # Obtain the list of substasks
+    subtasks = get_subtask_list()
+
+    args, unknown_args = command_line_parser(parser, subtasks)
 
     # Parse the arguments and launch the subtask.
-    launch(
-        parser,
-        subtasks,
-        override_results_dir="results_dir",
-        override_key="encryption_key"
-    )
+    launch(vars(args), unknown_args, subtasks, network="optical_inspection")
 
 
 if __name__ == '__main__':

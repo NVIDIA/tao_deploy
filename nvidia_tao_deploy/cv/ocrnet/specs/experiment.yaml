@@ -31,12 +31,12 @@ train:
   validation_interval: 1
   results_dir: "${results_dir}/train"
 evaluate:
-  gpu_id: 0
+  gpu_ids: [0]
   checkpoint: "??"
   test_dataset_dir: "??"
   results_dir: "${results_dir}/evaluate"
 inference:
-  gpu_id: 0
+  gpu_ids: [0]
   checkpoint: "??"
   inference_dataset_dir: "??"
   results_dir: "${results_dir}/inference"

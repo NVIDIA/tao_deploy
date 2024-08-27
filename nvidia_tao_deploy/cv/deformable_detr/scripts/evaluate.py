@@ -64,6 +64,7 @@ def main(cfg: ExperimentConfig) -> None:
         dtype=trt_infer.inputs[0].host.dtype,
         batch_size=cfg.dataset.batch_size,
         data_format="channels_first",
+        img_mean=cfg.dataset.augmentation.input_mean,
         image_std=cfg.dataset.augmentation.input_std,
         image_dir=cfg.dataset.test_data_sources.image_dir,
         eval_samples=None)
@@ -110,7 +111,7 @@ def main(cfg: ExperimentConfig) -> None:
         predictions['image_info'].append(image_info)
         predictions['source_id'].append(source_id)
 
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_evaluate")

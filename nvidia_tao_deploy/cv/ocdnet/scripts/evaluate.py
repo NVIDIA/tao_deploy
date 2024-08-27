@@ -22,7 +22,7 @@ import json
 import logging
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from nvidia_tao_deploy.cv.ocdnet.config.default_config import ExperimentConfig
+from nvidia_tao_deploy.cv.ocdnet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.ocdnet.data_loader.icdar_uber import get_dataloader
 from nvidia_tao_deploy.cv.ocdnet.post_processing.seg_detector_representer import get_post_processing
 from nvidia_tao_deploy.cv.ocdnet.utils.ocr_metric.icdar2015.quad_metric import get_metric
@@ -88,7 +88,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name="ocdnet", mode="evaluation")
 def main(cfg: ExperimentConfig) -> None:
     """Run the evaluation process."""
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "evaluate")

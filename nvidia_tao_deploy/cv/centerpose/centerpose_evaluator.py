@@ -551,8 +551,7 @@ class Evaluator(object):
             distance = np.linalg.norm(box[i, :] - instance[0, :])
             for j in range(Box.NUM_KEYPOINTS):
                 d = np.linalg.norm(box[i, :] - instance[j, :])
-                if d < distance:
-                    distance = d
+                distance = min(distance, d)
             add_sym_distance += distance
         add_sym_distance /= Box.NUM_KEYPOINTS
 

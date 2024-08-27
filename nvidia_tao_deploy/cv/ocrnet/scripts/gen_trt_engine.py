@@ -21,7 +21,7 @@ import tempfile
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.ocrnet.engine_builder import OCRNetEngineBuilder
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.ocrnet.config.default_config import ExperimentConfig
+from nvidia_tao_deploy.cv.ocrnet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.utils.decoding import decode_model
 
 

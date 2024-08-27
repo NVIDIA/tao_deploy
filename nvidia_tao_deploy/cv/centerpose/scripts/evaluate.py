@@ -80,7 +80,7 @@ def main(cfg: ExperimentConfig) -> None:
         # Launch the evaluation
         cp_evaluator.evaluate(final_output, json_paths)
 
-    if cfg.evaluate.results_dir is not None:
+    if cfg.evaluate.results_dir:
         results_dir = cfg.evaluate.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_evaluate")

@@ -26,7 +26,7 @@ from time import time
 import pycuda.driver as cuda
 
 from nvidia_tao_deploy.cv.common.telemetry.nvml_utils import get_device_details
-from nvidia_tao_deploy.cv.common.telemetry.telemetry import send_telemetry_data
+from nvidia_tao_core.telemetry.telemetry import send_telemetry_data
 
 RELEASE = True
 # Configure the logger.

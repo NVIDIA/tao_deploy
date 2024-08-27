@@ -90,6 +90,7 @@ class DDETRCOCOLoader(COCOLoader):
     def __init__(
         self,
         image_std=None,
+        img_mean=None,
         **kwargs
     ):
         """Init.
@@ -99,6 +100,7 @@ class DDETRCOCOLoader(COCOLoader):
         """
         super().__init__(**kwargs)
         self.image_std = image_std
+        self.img_mean = img_mean
 
     def _get_single_processed_item(self, idx):
         """Load and process single image and its label."""
@@ -133,6 +135,7 @@ class DDETRCOCOLoader(COCOLoader):
             image = np.transpose(image, (2, 0, 1))
         image = preprocess_input(image,
                                  data_format=self.data_format,
+                                 img_mean=self.img_mean,
                                  img_std=self.image_std,
                                  mode='torch')
         return image, scale

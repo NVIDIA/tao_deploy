@@ -343,7 +343,7 @@ def cluster_with_dbscan(bboxes, covs, criterion, db,
             pairwise_dist = \
                 cluster_weights[0] * (1.0 - iou_vectorized(bboxes))
             labeling = db.fit_predict(X=pairwise_dist, sample_weight=covs)
-        labels = np.unique(labeling[labeling >= 0])
+        labels = np.unique(labeling[labeling >= 0])  # pylint: disable=possibly-used-before-assignment
         logger.debug("Number of boxes: %d", len(labels))
         for label in labels:
             w = covs[labeling == label]

@@ -37,9 +37,8 @@ dataset:
     grid_map:
       x: 2
       y: 2
-    output_shape:
-      - 100
-      - 100
+    image_width: 128
+    image_height: 128
     augmentation_config:
       rgb_input_mean: [0.485, 0.456, 0.406]
       rgb_input_std: [0.229, 0.224, 0.225]
