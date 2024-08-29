@@ -1,4 +1,7 @@
-FROM nvcr.io/nvidia/tensorrt:23.12-py3
+ARG FROM_SCRIPTS_IMAGE=gitlab-master.nvidia.com:5005/dl/devops/build-scripts:latest
+FROM ${FROM_SCRIPTS_IMAGE} AS build-scripts
+
+FROM nvcr.io/nvidia/tensorrt:24.04-py3
 
 RUN apt-get update && \
     apt-get install -y pkg-config && \
@@ -16,26 +19,26 @@ RUN pip install --upgrade pip
 # Copy requirement and install
 WORKDIR /workspace/
 COPY docker/requirements-dev.txt /workspace/
-RUN pip install nvidia-pyindex Cython==0.29.36
+RUN pip install nvidia-pyindex Cython==0.29.36 git+https://github.com/cocodataset/panopticapi.git
 RUN pip install -r requirements-dev.txt && \
     rm -rf requirements-dev.txt
 RUN pip install scikit-learn==0.24.2 --no-build-isolation
 
 ARG TRT_VERSION_MAJOR=8
 ARG TRT_VERSION_MINOR=6
-ARG TRT_VERSION_PATCH=1
-ARG TRT_VERSION_BUILD=6
+ARG TRT_VERSION_PATCH=3
+ARG TRT_VERSION_BUILD=1
 ARG TRT_VERSION_MAJOR_MINOR=$TRT_VERSION_MAJOR.$TRT_VERSION_MINOR
 ARG TRT_VERSION_MAJOR_MINOR_PATCH=$TRT_VERSION_MAJOR.$TRT_VERSION_MINOR.$TRT_VERSION_PATCH
 ARG TRT_VERSION_FULL=$TRT_VERSION_MAJOR_MINOR_PATCH.$TRT_VERSION_BUILD
 
 ARG CUDA_VERSION_MAJOR=12
-ARG CUDA_VERSION_MINOR=0
-ARG CUDA_VERSION_PATCH=1
-ARG CUDA_VERSION_BUILD=011
+ARG CUDA_VERSION_MINOR=2
+ARG CUDA_VERSION_PATCH=2
+ARG CUDA_VERSION_BUILD=009
 ARG CUDA_VERSION_MAJOR_MINOR=$CUDA_VERSION_MAJOR.$CUDA_VERSION_MINOR
 ARG CUDA_VERSION_FULL=$CUDA_VERSION_MAJOR_MINOR.$CUDA_VERSION_PATCH.$CUDA_VERSION_BUILD
-ARG CUDNN_VERSION=8.9
+ARG CUDNN_VERSION=9.0.0.306
 
 ENV TRT_VERSION=$TRT_VERSION_FULL+cuda$CUDA_VERSION_FULL
 # RUN --mount=from=build-scripts,source=build-scripts,target=/nvidia/build-scripts \
@@ -72,6 +75,7 @@ RUN mkdir trt_oss_src && \
 #     pip install uff --index-url https://pypi.ngc.nvidia.com && \
 #     pip install graphsurgeon --index-url https://pypi.ngc.nvidia.com && \
 #     pip install onnx_graphsurgeon --index-url https://pypi.ngc.nvidia.com
+
 
 WORKDIR /workspace/
 # Create user that will run commands

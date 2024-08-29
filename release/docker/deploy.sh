@@ -9,7 +9,7 @@ REGISTRY="nvcr.io"
 TENSORRT_VERSION="8.5.3.1"
 CUDA_VERSION=12.0
 TAO_VERSION="5.2.0"
-REPOSITORY="nvidia/tao-toolkit-deploy"
+REPOSITORY="nvidia/tao/tao-toolkit-deploy"
 BUILD_ID="01"
 tag="v${TAO_VERSION}-trt${TENSORRT_VERSION}-${BUILD_ID}-dev-cuda${CUDA_VERSION}"
 
@@ -77,12 +77,13 @@ if [ $BUILD_DOCKER = "1" ]; then
     fi
     if [ $BUILD_WHEEL = "1" ]; then
         echo "Building source code wheel ..."
-       tao_deploy -- make build
+    #    tao_deploy -- make build
+       tao_deploy -- python3 setup.py bdist_wheel
     else
         echo "Skipping wheel builds ..."
     fi
     
-    docker build -f $NV_TAO_DEPLOY_TOP/release/docker/Dockerfile.release -t $REGISTRY/$REPOSITORY:$tag $NO_CACHE --network=host $NV_TAO_DEPLOY_TOP/.
+    docker build --pull -f $NV_TAO_DEPLOY_TOP/release/docker/Dockerfile.release -t $REGISTRY/$REPOSITORY:$tag $NO_CACHE --network=host $NV_TAO_DEPLOY_TOP/.
 
     if [ $PUSH_DOCKER = "1" ]; then
         echo "Pusing docker ..."
@@ -99,9 +100,7 @@ if [ $BUILD_DOCKER = "1" ]; then
     fi
 elif [ $RUN_DOCKER ="1" ]; then
     echo "Running docker interactively..."
-    docker run --gpus all -v /home/rtx/workspace/sean/tao-deploy:/workspace \
-                          -v /media/scratch.p3:/home/scratch.p3 \
-                          -v /media/projects.metropolis2:/home/projects2_metropolis \
+    docker run --gpus all -v /home/$USER/tlt-experiments:/workspace/tlt-experiments \
                           --net=host --shm-size=30g --ulimit memlock=-1 --ulimit stack=67108864 \
                           --rm -it $REGISTRY/$REPOSITORY:$tag /bin/bash
 else

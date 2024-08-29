@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -eo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 # Read parameters from manifest.json
 registry=`jq -r '.registry' $NV_TAO_DEPLOY_TOP/docker/manifest.json`

@@ -19,6 +19,8 @@ from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_proto import launch_job
 import nvidia_tao_deploy.cv.efficientdet_tf1.scripts
 
 
+# TODO @seanf: how to get subtasks for proto?
+
 def main():
     """Function to launch the job."""
     launch_job(nvidia_tao_deploy.cv.efficientdet_tf1.scripts, "efficientdet_tf1", sys.argv[1:])

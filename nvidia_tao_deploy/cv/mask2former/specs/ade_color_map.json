@@ -1,0 +1,1352 @@
+[
+  {
+    "color": [
+      120,
+      120,
+      120
+    ],
+    "id": 1,
+    "name": "wall"
+  },
+  {
+    "color": [
+      180,
+      120,
+      120
+    ],
+    "id": 2,
+    "name": "building"
+  },
+  {
+    "color": [
+      6,
+      230,
+      230
+    ],
+    "id": 3,
+    "name": "sky"
+  },
+  {
+    "color": [
+      80,
+      50,
+      50
+    ],
+    "id": 4,
+    "name": "floor"
+  },
+  {
+    "color": [
+      4,
+      200,
+      3
+    ],
+    "id": 5,
+    "name": "tree"
+  },
+  {
+    "color": [
+      120,
+      120,
+      80
+    ],
+    "id": 6,
+    "name": "ceiling"
+  },
+  {
+    "color": [
+      140,
+      140,
+      140
+    ],
+    "id": 7,
+    "name": "road"
+  },
+  {
+    "color": [
+      204,
+      5,
+      255
+    ],
+    "id": 8,
+    "name": "bed"
+  },
+  {
+    "color": [
+      230,
+      230,
+      230
+    ],
+    "id": 9,
+    "name": "windowpane"
+  },
+  {
+    "color": [
+      4,
+      250,
+      7
+    ],
+    "id": 10,
+    "name": "grass"
+  },
+  {
+    "color": [
+      224,
+      5,
+      255
+    ],
+    "id": 11,
+    "name": "cabinet"
+  },
+  {
+    "color": [
+      235,
+      255,
+      7
+    ],
+    "id": 12,
+    "name": "sidewalk"
+  },
+  {
+    "color": [
+      150,
+      5,
+      61
+    ],
+    "id": 13,
+    "name": "person"
+  },
+  {
+    "color": [
+      120,
+      120,
+      70
+    ],
+    "id": 14,
+    "name": "earth"
+  },
+  {
+    "color": [
+      8,
+      255,
+      51
+    ],
+    "id": 15,
+    "name": "door"
+  },
+  {
+    "color": [
+      255,
+      6,
+      82
+    ],
+    "id": 16,
+    "name": "table"
+  },
+  {
+    "color": [
+      143,
+      255,
+      140
+    ],
+    "id": 17,
+    "name": "mountain"
+  },
+  {
+    "color": [
+      204,
+      255,
+      4
+    ],
+    "id": 18,
+    "name": "plant"
+  },
+  {
+    "color": [
+      255,
+      51,
+      7
+    ],
+    "id": 19,
+    "name": "curtain"
+  },
+  {
+    "color": [
+      204,
+      70,
+      3
+    ],
+    "id": 20,
+    "name": "chair"
+  },
+  {
+    "color": [
+      0,
+      102,
+      200
+    ],
+    "id": 21,
+    "name": "car"
+  },
+  {
+    "color": [
+      61,
+      230,
+      250
+    ],
+    "id": 22,
+    "name": "water"
+  },
+  {
+    "color": [
+      255,
+      6,
+      51
+    ],
+    "id": 23,
+    "name": "painting"
+  },
+  {
+    "color": [
+      11,
+      102,
+      255
+    ],
+    "id": 24,
+    "name": "sofa"
+  },
+  {
+    "color": [
+      255,
+      7,
+      71
+    ],
+    "id": 25,
+    "name": "shelf"
+  },
+  {
+    "color": [
+      255,
+      9,
+      224
+    ],
+    "id": 26,
+    "name": "house"
+  },
+  {
+    "color": [
+      9,
+      7,
+      230
+    ],
+    "id": 27,
+    "name": "sea"
+  },
+  {
+    "color": [
+      220,
+      220,
+      220
+    ],
+    "id": 28,
+    "name": "mirror"
+  },
+  {
+    "color": [
+      255,
+      9,
+      92
+    ],
+    "id": 29,
+    "name": "rug"
+  },
+  {
+    "color": [
+      112,
+      9,
+      255
+    ],
+    "id": 30,
+    "name": "field"
+  },
+  {
+    "color": [
+      8,
+      255,
+      214
+    ],
+    "id": 31,
+    "name": "armchair"
+  },
+  {
+    "color": [
+      7,
+      255,
+      224
+    ],
+    "id": 32,
+    "name": "seat"
+  },
+  {
+    "color": [
+      255,
+      184,
+      6
+    ],
+    "id": 33,
+    "name": "fence"
+  },
+  {
+    "color": [
+      10,
+      255,
+      71
+    ],
+    "id": 34,
+    "name": "desk"
+  },
+  {
+    "color": [
+      255,
+      41,
+      10
+    ],
+    "id": 35,
+    "name": "rock"
+  },
+  {
+    "color": [
+      7,
+      255,
+      255
+    ],
+    "id": 36,
+    "name": "wardrobe"
+  },
+  {
+    "color": [
+      224,
+      255,
+      8
+    ],
+    "id": 37,
+    "name": "lamp"
+  },
+  {
+    "color": [
+      102,
+      8,
+      255
+    ],
+    "id": 38,
+    "name": "bathtub"
+  },
+  {
+    "color": [
+      255,
+      61,
+      6
+    ],
+    "id": 39,
+    "name": "railing"
+  },
+  {
+    "color": [
+      255,
+      194,
+      7
+    ],
+    "id": 40,
+    "name": "cushion"
+  },
+  {
+    "color": [
+      255,
+      122,
+      8
+    ],
+    "id": 41,
+    "name": "base"
+  },
+  {
+    "color": [
+      0,
+      255,
+      20
+    ],
+    "id": 42,
+    "name": "box"
+  },
+  {
+    "color": [
+      255,
+      8,
+      41
+    ],
+    "id": 43,
+    "name": "column"
+  },
+  {
+    "color": [
+      255,
+      5,
+      153
+    ],
+    "id": 44,
+    "name": "signboard"
+  },
+  {
+    "color": [
+      6,
+      51,
+      255
+    ],
+    "id": 45,
+    "name": "chest"
+  },
+  {
+    "color": [
+      235,
+      12,
+      255
+    ],
+    "id": 46,
+    "name": "counter"
+  },
+  {
+    "color": [
+      160,
+      150,
+      20
+    ],
+    "id": 47,
+    "name": "sand"
+  },
+  {
+    "color": [
+      0,
+      163,
+      255
+    ],
+    "id": 48,
+    "name": "sink"
+  },
+  {
+    "color": [
+      140,
+      140,
+      140
+    ],
+    "id": 49,
+    "name": "skyscraper"
+  },
+  {
+    "color": [
+      250,
+      10,
+      15
+    ],
+    "id": 50,
+    "name": "fireplace"
+  },
+  {
+    "color": [
+      20,
+      255,
+      0
+    ],
+    "id": 51,
+    "name": "refrigerator"
+  },
+  {
+    "color": [
+      31,
+      255,
+      0
+    ],
+    "id": 52,
+    "name": "grandstand"
+  },
+  {
+    "color": [
+      255,
+      31,
+      0
+    ],
+    "id": 53,
+    "name": "path"
+  },
+  {
+    "color": [
+      255,
+      224,
+      0
+    ],
+    "id": 54,
+    "name": "stairs"
+  },
+  {
+    "color": [
+      153,
+      255,
+      0
+    ],
+    "id": 55,
+    "name": "runway"
+  },
+  {
+    "color": [
+      0,
+      0,
+      255
+    ],
+    "id": 56,
+    "name": "case"
+  },
+  {
+    "color": [
+      255,
+      71,
+      0
+    ],
+    "id": 57,
+    "name": "pool"
+  },
+  {
+    "color": [
+      0,
+      235,
+      255
+    ],
+    "id": 58,
+    "name": "pillow"
+  },
+  {
+    "color": [
+      0,
+      173,
+      255
+    ],
+    "id": 59,
+    "name": "screen"
+  },
+  {
+    "color": [
+      31,
+      0,
+      255
+    ],
+    "id": 60,
+    "name": "stairway"
+  },
+  {
+    "color": [
+      11,
+      200,
+      200
+    ],
+    "id": 61,
+    "name": "river"
+  },
+  {
+    "color": [
+      255,
+      82,
+      0
+    ],
+    "id": 62,
+    "name": "bridge"
+  },
+  {
+    "color": [
+      0,
+      255,
+      245
+    ],
+    "id": 63,
+    "name": "bookcase"
+  },
+  {
+    "color": [
+      0,
+      61,
+      255
+    ],
+    "id": 64,
+    "name": "blind"
+  },
+  {
+    "color": [
+      0,
+      255,
+      112
+    ],
+    "id": 65,
+    "name": "coffee"
+  },
+  {
+    "color": [
+      0,
+      255,
+      133
+    ],
+    "id": 66,
+    "name": "toilet"
+  },
+  {
+    "color": [
+      255,
+      0,
+      0
+    ],
+    "id": 67,
+    "name": "flower"
+  },
+  {
+    "color": [
+      255,
+      163,
+      0
+    ],
+    "id": 68,
+    "name": "book"
+  },
+  {
+    "color": [
+      255,
+      102,
+      0
+    ],
+    "id": 69,
+    "name": "hill"
+  },
+  {
+    "color": [
+      194,
+      255,
+      0
+    ],
+    "id": 70,
+    "name": "bench"
+  },
+  {
+    "color": [
+      0,
+      143,
+      255
+    ],
+    "id": 71,
+    "name": "countertop"
+  },
+  {
+    "color": [
+      51,
+      255,
+      0
+    ],
+    "id": 72,
+    "name": "stove"
+  },
+  {
+    "color": [
+      0,
+      82,
+      255
+    ],
+    "id": 73,
+    "name": "palm"
+  },
+  {
+    "color": [
+      0,
+      255,
+      41
+    ],
+    "id": 74,
+    "name": "kitchen"
+  },
+  {
+    "color": [
+      0,
+      255,
+      173
+    ],
+    "id": 75,
+    "name": "computer"
+  },
+  {
+    "color": [
+      10,
+      0,
+      255
+    ],
+    "id": 76,
+    "name": "swivel"
+  },
+  {
+    "color": [
+      173,
+      255,
+      0
+    ],
+    "id": 77,
+    "name": "boat"
+  },
+  {
+    "color": [
+      0,
+      255,
+      153
+    ],
+    "id": 78,
+    "name": "bar"
+  },
+  {
+    "color": [
+      255,
+      92,
+      0
+    ],
+    "id": 79,
+    "name": "arcade"
+  },
+  {
+    "color": [
+      255,
+      0,
+      255
+    ],
+    "id": 80,
+    "name": "hovel"
+  },
+  {
+    "color": [
+      255,
+      0,
+      245
+    ],
+    "id": 81,
+    "name": "bus"
+  },
+  {
+    "color": [
+      255,
+      0,
+      102
+    ],
+    "id": 82,
+    "name": "towel"
+  },
+  {
+    "color": [
+      255,
+      173,
+      0
+    ],
+    "id": 83,
+    "name": "light"
+  },
+  {
+    "color": [
+      255,
+      0,
+      20
+    ],
+    "id": 84,
+    "name": "truck"
+  },
+  {
+    "color": [
+      255,
+      184,
+      184
+    ],
+    "id": 85,
+    "name": "tower"
+  },
+  {
+    "color": [
+      0,
+      31,
+      255
+    ],
+    "id": 86,
+    "name": "chandelier"
+  },
+  {
+    "color": [
+      0,
+      255,
+      61
+    ],
+    "id": 87,
+    "name": "awning"
+  },
+  {
+    "color": [
+      0,
+      71,
+      255
+    ],
+    "id": 88,
+    "name": "streetlight"
+  },
+  {
+    "color": [
+      255,
+      0,
+      204
+    ],
+    "id": 89,
+    "name": "booth"
+  },
+  {
+    "color": [
+      0,
+      255,
+      194
+    ],
+    "id": 90,
+    "name": "television"
+  },
+  {
+    "color": [
+      0,
+      255,
+      82
+    ],
+    "id": 91,
+    "name": "airplane"
+  },
+  {
+    "color": [
+      0,
+      10,
+      255
+    ],
+    "id": 92,
+    "name": "dirt"
+  },
+  {
+    "color": [
+      0,
+      112,
+      255
+    ],
+    "id": 93,
+    "name": "apparel"
+  },
+  {
+    "color": [
+      51,
+      0,
+      255
+    ],
+    "id": 94,
+    "name": "pole"
+  },
+  {
+    "color": [
+      0,
+      194,
+      255
+    ],
+    "id": 95,
+    "name": "land"
+  },
+  {
+    "color": [
+      0,
+      122,
+      255
+    ],
+    "id": 96,
+    "name": "bannister"
+  },
+  {
+    "color": [
+      0,
+      255,
+      163
+    ],
+    "id": 97,
+    "name": "escalator"
+  },
+  {
+    "color": [
+      255,
+      153,
+      0
+    ],
+    "id": 98,
+    "name": "ottoman"
+  },
+  {
+    "color": [
+      0,
+      255,
+      10
+    ],
+    "id": 99,
+    "name": "bottle"
+  },
+  {
+    "color": [
+      255,
+      112,
+      0
+    ],
+    "id": 100,
+    "name": "buffet"
+  },
+  {
+    "color": [
+      143,
+      255,
+      0
+    ],
+    "id": 101,
+    "name": "poster"
+  },
+  {
+    "color": [
+      82,
+      0,
+      255
+    ],
+    "id": 102,
+    "name": "stage"
+  },
+  {
+    "color": [
+      163,
+      255,
+      0
+    ],
+    "id": 103,
+    "name": "van"
+  },
+  {
+    "color": [
+      255,
+      235,
+      0
+    ],
+    "id": 104,
+    "name": "ship"
+  },
+  {
+    "color": [
+      8,
+      184,
+      170
+    ],
+    "id": 105,
+    "name": "fountain"
+  },
+  {
+    "color": [
+      133,
+      0,
+      255
+    ],
+    "id": 106,
+    "name": "conveyer"
+  },
+  {
+    "color": [
+      0,
+      255,
+      92
+    ],
+    "id": 107,
+    "name": "canopy"
+  },
+  {
+    "color": [
+      184,
+      0,
+      255
+    ],
+    "id": 108,
+    "name": "washer"
+  },
+  {
+    "color": [
+      255,
+      0,
+      31
+    ],
+    "id": 109,
+    "name": "plaything"
+  },
+  {
+    "color": [
+      0,
+      184,
+      255
+    ],
+    "id": 110,
+    "name": "swimming"
+  },
+  {
+    "color": [
+      0,
+      214,
+      255
+    ],
+    "id": 111,
+    "name": "stool"
+  },
+  {
+    "color": [
+      255,
+      0,
+      112
+    ],
+    "id": 112,
+    "name": "barrel"
+  },
+  {
+    "color": [
+      92,
+      255,
+      0
+    ],
+    "id": 113,
+    "name": "basket"
+  },
+  {
+    "color": [
+      0,
+      224,
+      255
+    ],
+    "id": 114,
+    "name": "waterfall"
+  },
+  {
+    "color": [
+      112,
+      224,
+      255
+    ],
+    "id": 115,
+    "name": "tent"
+  },
+  {
+    "color": [
+      70,
+      184,
+      160
+    ],
+    "id": 116,
+    "name": "bag"
+  },
+  {
+    "color": [
+      163,
+      0,
+      255
+    ],
+    "id": 117,
+    "name": "minibike"
+  },
+  {
+    "color": [
+      153,
+      0,
+      255
+    ],
+    "id": 118,
+    "name": "cradle"
+  },
+  {
+    "color": [
+      71,
+      255,
+      0
+    ],
+    "id": 119,
+    "name": "oven"
+  },
+  {
+    "color": [
+      255,
+      0,
+      163
+    ],
+    "id": 120,
+    "name": "ball"
+  },
+  {
+    "color": [
+      255,
+      204,
+      0
+    ],
+    "id": 121,
+    "name": "food"
+  },
+  {
+    "color": [
+      255,
+      0,
+      143
+    ],
+    "id": 122,
+    "name": "step"
+  },
+  {
+    "color": [
+      0,
+      255,
+      235
+    ],
+    "id": 123,
+    "name": "tank"
+  },
+  {
+    "color": [
+      133,
+      255,
+      0
+    ],
+    "id": 124,
+    "name": "trade"
+  },
+  {
+    "color": [
+      255,
+      0,
+      235
+    ],
+    "id": 125,
+    "name": "microwave"
+  },
+  {
+    "color": [
+      245,
+      0,
+      255
+    ],
+    "id": 126,
+    "name": "pot"
+  },
+  {
+    "color": [
+      255,
+      0,
+      122
+    ],
+    "id": 127,
+    "name": "animal"
+  },
+  {
+    "color": [
+      255,
+      245,
+      0
+    ],
+    "id": 128,
+    "name": "bicycle"
+  },
+  {
+    "color": [
+      10,
+      190,
+      212
+    ],
+    "id": 129,
+    "name": "lake"
+  },
+  {
+    "color": [
+      214,
+      255,
+      0
+    ],
+    "id": 130,
+    "name": "dishwasher"
+  },
+  {
+    "color": [
+      0,
+      204,
+      255
+    ],
+    "id": 131,
+    "name": "screen"
+  },
+  {
+    "color": [
+      20,
+      0,
+      255
+    ],
+    "id": 132,
+    "name": "blanket"
+  },
+  {
+    "color": [
+      255,
+      255,
+      0
+    ],
+    "id": 133,
+    "name": "sculpture"
+  },
+  {
+    "color": [
+      0,
+      153,
+      255
+    ],
+    "id": 134,
+    "name": "hood"
+  },
+  {
+    "color": [
+      0,
+      41,
+      255
+    ],
+    "id": 135,
+    "name": "sconce"
+  },
+  {
+    "color": [
+      0,
+      255,
+      204
+    ],
+    "id": 136,
+    "name": "vase"
+  },
+  {
+    "color": [
+      41,
+      0,
+      255
+    ],
+    "id": 137,
+    "name": "traffic"
+  },
+  {
+    "color": [
+      41,
+      255,
+      0
+    ],
+    "id": 138,
+    "name": "tray"
+  },
+  {
+    "color": [
+      173,
+      0,
+      255
+    ],
+    "id": 139,
+    "name": "ashcan"
+  },
+  {
+    "color": [
+      0,
+      245,
+      255
+    ],
+    "id": 140,
+    "name": "fan"
+  },
+  {
+    "color": [
+      71,
+      0,
+      255
+    ],
+    "id": 141,
+    "name": "pier"
+  },
+  {
+    "color": [
+      122,
+      0,
+      255
+    ],
+    "id": 142,
+    "name": "crt"
+  },
+  {
+    "color": [
+      0,
+      255,
+      184
+    ],
+    "id": 143,
+    "name": "plate"
+  },
+  {
+    "color": [
+      0,
+      92,
+      255
+    ],
+    "id": 144,
+    "name": "monitor"
+  },
+  {
+    "color": [
+      184,
+      255,
+      0
+    ],
+    "id": 145,
+    "name": "bulletin"
+  },
+  {
+    "color": [
+      0,
+      133,
+      255
+    ],
+    "id": 146,
+    "name": "shower"
+  },
+  {
+    "color": [
+      255,
+      214,
+      0
+    ],
+    "id": 147,
+    "name": "radiator"
+  },
+  {
+    "color": [
+      25,
+      194,
+      194
+    ],
+    "id": 148,
+    "name": "glass"
+  },
+  {
+    "color": [
+      102,
+      255,
+      0
+    ],
+    "id": 149,
+    "name": "clock"
+  },
+  {
+    "color": [
+      92,
+      0,
+      255
+    ],
+    "id": 150,
+    "name": "flag"
+  }
+]

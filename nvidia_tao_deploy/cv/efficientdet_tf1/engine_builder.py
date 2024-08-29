@@ -55,12 +55,11 @@ class EfficientDetEngineBuilder(EngineBuilder):
             self.parser = trt.OnnxParser(self.network, self.trt_logger)
 
             model_path = os.path.realpath(model_path)
-            with open(model_path, "rb") as f:
-                if not self.parser.parse(f.read()):
-                    logger.error("Failed to load ONNX file: %s", model_path)
-                    for error in range(self.parser.num_errors):
-                        logger.error(self.parser.get_error(error))
-                    sys.exit(1)
+            if not self.parser.parse_from_file(model_path):
+                logger.error("Failed to load ONNX file: %s", model_path)
+                for error in range(self.parser.num_errors):
+                    logger.error(self.parser.get_error(error))
+                sys.exit(1)
 
             inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
             outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]

@@ -25,9 +25,8 @@ from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.optical_inspection.inferencer import OpticalInspectionInferencer
 from nvidia_tao_deploy.cv.optical_inspection.dataloader import OpticalInspectionDataLoader
-from nvidia_tao_deploy.cv.optical_inspection.config.default_config import (
-    OIExperimentConfig as ExperimentConfig
-)
+from nvidia_tao_deploy.cv.optical_inspection.hydra_config.default_config import ExperimentConfig
+
 from sklearn import metrics
 from tqdm import tqdm
 
@@ -48,7 +47,7 @@ def main(cfg: ExperimentConfig) -> None:
     engine_file = cfg.inference.trt_engine
     batch_size = cfg.inference.batch_size
     dataset_config = cfg.dataset
-    if cfg.inference.results_dir is not None:
+    if cfg.inference.results_dir:
         results_dir = cfg.inference.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "inference")
@@ -66,7 +65,8 @@ def main(cfg: ExperimentConfig) -> None:
         input_data_path=dataset_config.infer_dataset.images_dir,
         train=False,
         data_config=dataset_config,
-        dtype=optical_inspection_inferencer.inputs[0].host.dtype
+        dtype=optical_inspection_inferencer.inputs[0].host.dtype,
+        batch_size=batch_size
     )
     inference_score = []
     total_num_samples = len(infer_dataloader)

@@ -95,7 +95,7 @@ class QuadMetric():
                 if pred_scores[i] >= box_thresh:
                     pred.append({"points": pred_polygons[i, :, :].astype(np.int)})
             res = self.evaluator.evaluate_image(gt, pred)
-        results.append(res)
+        results.append(res)  # pylint: disable=possibly-used-before-assignment
         return results
 
     def validate_measure(self, batch, output, box_thresh=0.6):

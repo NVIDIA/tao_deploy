@@ -81,7 +81,7 @@ def main(cfg: ExperimentConfig) -> None:
             output_engine_path,
             cfg.gen_trt_engine.tensorrt.data_type)
 
-    if cfg.gen_trt_engine.results_dir is not None:
+    if cfg.gen_trt_engine.results_dir:
         results_dir = cfg.gen_trt_engine.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "gen_trt_engine")

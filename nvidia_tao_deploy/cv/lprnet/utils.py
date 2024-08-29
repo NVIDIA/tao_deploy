@@ -14,6 +14,8 @@
 
 """Helper function to decode ctc trained model's output."""
 
+import numpy as np
+
 
 def decode_ctc_conf(pred,
                     classes,
@@ -22,8 +24,15 @@ def decode_ctc_conf(pred,
 
     Return decoded license plate and confidence.
     """
-    pred_id = pred[0]
-    pred_conf = pred[1]
+    pred_id = []
+    pred_conf = []
+    for pred_item in pred:
+        if pred_item.dtype == np.float32:
+            pred_conf = pred_item
+        elif pred_item.dtype == np.int32:
+            pred_id = pred_item
+        else:
+            raise ValueError("Unsupported output data type.")
     decoded_lp = []
     decoded_conf = []
 

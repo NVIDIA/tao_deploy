@@ -51,11 +51,6 @@ function _check_tao_deploy_requirements(){
         return 1
     fi
 
-    if ! command -v jq >/dev/null; then
-        echo -e "\033[1;31mERROR:\033[0m jq not found"
-        return 1
-    fi
-
     # Check if docker was installed.
     if ! command -v docker >/dev/null; then
         warnings+=("docker not found")

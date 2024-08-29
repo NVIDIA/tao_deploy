@@ -40,7 +40,8 @@ class OpticalInspectionDataLoader(ABC):
             train=False,
             data_config=None,
             dtype=np.float32,
-            split='inference'):
+            split='inference',
+            batch_size=1):
         """Initialize the Optical Inspection dataloader."""
         if not os.path.exists(csv_file):
             raise FileNotFoundError(f"Inference data csv file wasn't found at {csv_file}")
@@ -52,10 +53,11 @@ class OpticalInspectionDataLoader(ABC):
         self.concat_type = data_config.concat_type
         self.input_map = data_config.input_map
         self.grid_map = data_config.grid_map
-        self.output_shape = data_config.output_shape
+        self.image_width = data_config.image_width
+        self.image_height = data_config.image_height
         self.data_config = data_config
         self.ext = data_config.image_ext
-        self.batch_size = data_config.batch_size
+        self.batch_size = batch_size
         self.dtype = dtype
         self.n_batches = math.ceil(float(len(self.merged)) / self.batch_size)
         self.split = split
@@ -151,7 +153,7 @@ class OpticalInspectionDataLoader(ABC):
                 )
             )
 
-        size = (self.output_shape[0], self.output_shape[1])
+        size = (self.image_height, self.image_width)
         preprocessed_image_0 = self.preprocess_single_sample(
             image_0, size,
             self.data_config.augmentation_config.rgb_input_mean,
@@ -184,22 +186,22 @@ class OpticalInspectionDataLoader(ABC):
         """
         if self.concat_type == "grid" and int(self.num_inputs) % 2 == 0:
             x, y = int(self.grid_map["x"]), int(self.grid_map["y"])
-            concatenated_image = np.zeros((3, x * self.output_shape[0], y * self.output_shape[1]))
+            concatenated_image = np.zeros((3, x * self.image_height, y * self.image_width))
             for idx in range(x):
                 for idy in range(y):
                     concatenated_image[
                         :,
-                        idx * self.output_shape[0]: (idx + 1) * self.output_shape[0],
-                        idy * self.output_shape[1]: (idy + 1) * self.output_shape[1]] = preprocessed_image_array[idx * x + idy]
+                        idx * self.image_height: (idx + 1) * self.image_height,
+                        idy * self.image_width: (idy + 1) * self.image_width] = preprocessed_image_array[idx * x + idy]
         else:
             concatenated_image = np.zeros((
                 3,
-                self.num_inputs * self.output_shape[0],
-                self.output_shape[1]))
+                self.num_inputs * self.image_height,
+                self.image_width))
             for idx in range(self.num_inputs):
                 concatenated_image[
                     :,
-                    idx * self.output_shape[0]: self.output_shape[0] * idx + self.output_shape[0],
+                    idx * self.image_height: self.image_height * idx + self.image_height,
                     :] = preprocessed_image_array[idx]
         return concatenated_image
 

@@ -46,7 +46,7 @@ def monitor_status(name='efficientdet', mode='training'):
                 )
                 runner(cfg, **kwargs)
                 s_logger.write(
-                    status_level=status_logging.Status.SUCCESS,
+                    status_level=status_logging.Status.RUNNING,
                     message=f"{mode.capitalize()} finished successfully."
                 )
             except (KeyboardInterrupt, SystemError):

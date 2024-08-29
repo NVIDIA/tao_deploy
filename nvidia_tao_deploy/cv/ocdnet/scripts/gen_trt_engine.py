@@ -20,7 +20,7 @@ import os
 from nvidia_tao_deploy.utils.decoding import decode_model
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.ocdnet.config.default_config import ExperimentConfig
+from nvidia_tao_deploy.cv.ocdnet.hydra_config.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.ocdnet.engine_builder import OCDNetEngineBuilder
 
@@ -37,7 +37,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name="ocdnet", mode="gen_trt_engine")
 def main(cfg: ExperimentConfig) -> None:
     """Convert the onnx model to TRT engine."""
-    if cfg.gen_trt_engine.results_dir is not None:
+    if cfg.gen_trt_engine.results_dir:
         results_dir = cfg.gen_trt_engine.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "gen_trt_engine")

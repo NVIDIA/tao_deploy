@@ -1,3 +1,4 @@
+setuptools==69.1.0
 absl-py>=0.7.1
 matplotlib>=3.0.3
 h5py==3.7.0
@@ -23,6 +24,7 @@ numpy<=1.23.1
 shapely==1.8.2
 natsort==8.4.0
 tqdm==4.64.0
+transformers>=4.38.2
 # Required for nvidia_eff_tao_encryption
 pyarmor==7.7.4
 auditwheel==5.4.0
@@ -34,3 +36,4 @@ flake8
 pydocstyle
 pyflakes
 pylint
+git+https://github.com/cocodataset/panopticapi.git

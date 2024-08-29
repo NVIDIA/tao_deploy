@@ -50,7 +50,7 @@ def main(cfg: ExperimentConfig) -> None:
     batch_size = cfg.inference.batch_size
 
     # Create results directories
-    if cfg.inference.results_dir is not None:
+    if cfg.inference.results_dir:
         results_dir = cfg.inference.results_dir
     else:
         results_dir = os.path.join(cfg.results_dir, "trt_inference")
@@ -91,7 +91,8 @@ def main(cfg: ExperimentConfig) -> None:
             train=False,
             data_config=dataset_config,
             dtype=changenet_inferencer.inputs[0].host.dtype,
-            split='inference'
+            split='inference',
+            batch_size=batch_size
         )
 
     else:

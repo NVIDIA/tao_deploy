@@ -79,7 +79,7 @@ We recommend adding this command to your local `~/.bashrc` file, so that every n
 In order to maintain a uniform development environment across all users, TAO Toolkit provides a base environment docker that has been built and uploaded to NGC for the developers. For instantiating the docker, simply run the `tao_deploy` CLI. The usage for the command line launcher is mentioned below.
 
 ```sh
-usage: tao_deploy [-h] [--gpus GPUS] [--volume VOLUME] [--env ENV] [--mounts_file MOUNTS_FILE] [--shm_size SHM_SIZE] [--run_as_user] [--ulimit ULIMIT] [--port PORT]
+usage: tao_deploy [-h] [--gpus GPUS] [--volume VOLUME] [--env ENV] [--mounts_file MOUNTS_FILE] [--shm_size SHM_SIZE] [--run_as_user] [--tag TAG] [--ulimit ULIMIT] [--port PORT]
 
 Tool to run the TAO Toolkit Deploy container.
 
@@ -92,6 +92,7 @@ optional arguments:
                         Path to the mounts file.
   --shm_size SHM_SIZE   Shared memory size for docker
   --run_as_user         Flag to run as user
+  --tag TAG             The tag value for the local dev docker.
   --ulimit ULIMIT       Docker ulimits for the host machine.
   --port PORT           Port mapping (e.g. 8889:8889).
 
@@ -112,16 +113,18 @@ There will be situations where developers would be required to update the third 
 The base dev docker is defined in `$NV_TAO_DEPLOY_TOP/docker/Dockerfile`. The python packages required for the TAO dev is defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-pip.txt` and the third party apt packages are defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-apt.txt`. Once you have made the required change, please update the base docker using the build script in the same directory.
 
 ```sh
+git submodule update --init --recursive
+git submodule foreach git pull origin main
 cd $NV_TAO_DEPLOY_TOP/docker
 ./build.sh --build
 ```
 
 #### <a name='Testthenewlybuiltbasedocker'></a>Test the newly built base docker
 
-Developers may tests their new docker by using the `tao_deploy` command.
+The build script tags the newly built base docker with the username of the account in the user's local machine. Therefore, the developers may tests their new docker by using the `tao_deploy` command with the `--tag` option.
 
 ```sh
-tao_deploy -- script args
+tao_deploy --tag $USER -- script args
 ```
 
 #### <a name='Updatethenewdocker'></a>Update the new docker
@@ -149,6 +152,8 @@ bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --push --force
 The TAO container is built on top of the TAO Deploy base dev container, by building a python wheel for the `nvidia_tao_deploy` module in this repository and installing the wheel in the Dockerfile defined in `release/docker/Dockerfile`. The whole build process is captured in a single shell script which may be run as follows:
 
 ```sh
+git lfs install
+git lfs pull
 source scripts/envsetup.sh
 cd $NV_TAO_DEPLOY_TOP/release/docker
 ./deploy.sh --build --wheel

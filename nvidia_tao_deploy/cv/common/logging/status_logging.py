@@ -21,6 +21,9 @@ import json
 import logging
 import os
 
+from nvidia_tao_core.cloud_handlers.utils import status_callback
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +71,7 @@ status_level_to_name = {
 class BaseLogger(object):
     """File logger class."""
 
-    def __init__(self, is_master=False, verbosity=Verbosity.DISABLE):
+    def __init__(self, is_master=False, verbosity=Verbosity.INFO):
         """Base logger class."""
         self.is_master = is_master
         self.verbosity = verbosity
@@ -134,14 +137,10 @@ class BaseLogger(object):
 
     def format_data(self, data: dict):
         """Format the data."""
-        if isinstance(data, dict):
-            data_string = []
-            for key, value in data.items():
-                data_string.append(
-                    f"{key}: {self.format_data(value)}"
-                    if isinstance(value, dict) else value
-                )
-        return ", ".join(data_string)
+        if not isinstance(data, dict):
+            raise TypeError(f"Data must be a dictionary and not type {type(data)}.")
+        data_string = json.dumps(data)
+        return data_string
 
     def log(self, level, string):
         """Log the data string."""
@@ -180,6 +179,7 @@ class BaseLogger(object):
             if self.is_master:
                 self.log(verbosity_level, data_string)
             self.flush()
+            status_callback(data_string)
 
 
 class StatusLogger(BaseLogger):

@@ -120,7 +120,8 @@ def allocate_buffers(engine, context=None, reshape=False):
                        # D-DETR
                        "inputs": np.float32,
                        "pred_boxes": np.float32,
-                       "pred_logits": np.float32}
+                       "pred_logits": np.float32,
+                       "pred_masks": np.float32}
 
     for binding in engine:
         binding_id = engine.get_binding_index(str(binding))

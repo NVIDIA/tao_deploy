@@ -32,9 +32,8 @@ dataset:
   grid_map:
     x: 2
     y: 2
-  output_shape:
-    - 100
-    - 100
+  image_width: 100
+  image_height: 100
   augmentation_config:
     rgb_input_mean: [0.485, 0.456, 0.406]
     rgb_input_std: [0.229, 0.224, 0.225]
@@ -47,7 +46,7 @@ train:
   checkpoint_interval: 5
   results_dir: "${results_dir}/train"
 evaluate:
-  gpu_id: 0
+  gpu_ids: [0]
   checkpoint: "${results_dir}/train/oi_model_epoch=004.pth"
   results_dir: "${results_dir}/evaluate"
 export:
@@ -55,7 +54,7 @@ export:
   results_dir: "${results_dir}/export"
   onnx_file: "${export.results_dir}/oi_model.onnx"
 inference:
-  gpu_id: 0
+  gpu_ids: [0]
   results_dir: "${results_dir}/inference"
   trt_engine: "${gen_trt_engine.trt_engine}"
   batch_size: ${dataset.batch_size}
