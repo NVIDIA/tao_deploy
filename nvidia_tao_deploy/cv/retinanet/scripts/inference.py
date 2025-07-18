@@ -14,14 +14,11 @@
 
 """Standalone TensorRT Inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import numpy as np
 from PIL import Image
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 import logging
@@ -38,7 +35,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='retinanet', mode='inference')
+@monitor_status(name='retinanet', mode='inference', hydra=False)
 def main(args):
     """RetinaNet TRT inference."""
     # Load from proto-based spec file
@@ -48,7 +45,7 @@ def main(args):
     batch_size = args.batch_size if args.batch_size else es.eval_config.batch_size
     trt_infer = RetinaNetInferencer(args.model_path, batch_size=batch_size)
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     img_mean = es.augmentation_config.image_mean
     if c == 3:
@@ -81,7 +78,7 @@ def main(args):
         is_inference=True,
         image_mean=img_mean,
         keep_aspect_ratio=False,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     inv_classes = {v: k for k, v in dl.classes.items()}
 

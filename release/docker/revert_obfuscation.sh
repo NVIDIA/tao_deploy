@@ -12,7 +12,6 @@ rm -rf ${REPO_ROOT}/nvidia_tao_deploy/*
 mv /orig_src/* ${REPO_ROOT}/nvidia_tao_deploy/
 
 # Remove the tmp folders.
-rm -rf /dist
 rm -rf /orig_src
 rm -rf /obf_src
-rm -rf ${REPO_ROOT}/pytransform_vax_001219
+rm -rf ${REPO_ROOT}/pyarmor_runtime_001219

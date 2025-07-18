@@ -14,10 +14,6 @@
 
 """YOLOv3 convert etlt/onnx model to TRT engine."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 import os
@@ -38,7 +34,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='yolo_v3', mode='gen_trt_engine')
+@monitor_status(name='yolo_v3', mode='gen_trt_engine', hydra=False)
 def main(args):
     """YOLOv3 TRT convert."""
     # decrypt etlt
@@ -73,7 +69,6 @@ def main(args):
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size,
             calib_json_file=args.cal_json_file)
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

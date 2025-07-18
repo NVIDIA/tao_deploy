@@ -14,10 +14,6 @@
 
 """mAP calculation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from functools import partial
 import logging
 import os
@@ -88,7 +84,7 @@ def _per_img_match(x, n_classes, sorting_algorithm, matching_iou_threshold):
     pred = x[1]
     T = [[] for _ in range(n_classes)]
     P = [[] for _ in range(n_classes)]
-    gt_cls = [gt[gt[:, 0].astype(np.int) == i, 1:] for i in range(n_classes)]
+    gt_cls = [gt[gt[:, 0].astype(int) == i, 1:] for i in range(n_classes)]
     gt_cls_valid = [np.ones((len(i), )) for i in gt_cls]
     gt_hard_count = [i[:, 0].sum() for i in gt_cls]
 

@@ -22,15 +22,16 @@ import pandas as pd
 import numpy as np
 
 from omegaconf import OmegaConf
+import tensorrt as trt
 from tqdm.auto import tqdm
+
+from nvidia_tao_core.config.classification_tf2.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.classification_tf1.inferencer import ClassificationInferencer
 from nvidia_tao_deploy.cv.classification_tf1.dataloader import ClassificationLoader
-from nvidia_tao_deploy.cv.classification_tf2.hydra_config.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.common.utils import update_results_dir
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -45,7 +46,6 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 def main(cfg: ExperimentConfig) -> None:
     """Wrapper function for TRT engine inference."""
-    cfg = update_results_dir(cfg, 'inference')
     run_inference(cfg=cfg)
 
 
@@ -72,14 +72,14 @@ def run_inference(cfg: ExperimentConfig) -> None:
     mode = cfg.dataset.preprocess_mode
     interpolation_method = cfg.model.resize_interpolation_method
     crop = "center" if cfg.dataset.augmentation.enable_center_crop else None
-    data_format = cfg.data_format
+    data_format = cfg.data_format  # channels_first
     image_mean = OmegaConf.to_container(cfg.dataset.image_mean)
     batch_size = cfg.evaluate.batch_size
 
-    trt_infer = ClassificationInferencer(cfg.inference.trt_engine, data_format=data_format, batch_size=batch_size)
+    trt_infer = ClassificationInferencer(cfg.inference.trt_engine, data_format='channel_first', batch_size=batch_size)
 
     dl = ClassificationLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         [cfg.inference.image_dir],
         mapping_dict,
         is_inference=True,
@@ -90,7 +90,7 @@ def run_inference(cfg: ExperimentConfig) -> None:
         batch_size=cfg.evaluate.batch_size,
         image_mean=image_mean,
         image_depth=cfg.model.input_image_depth,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     os.makedirs(cfg.results_dir, exist_ok=True)
     result_csv_path = os.path.join(cfg.results_dir, 'result.csv')

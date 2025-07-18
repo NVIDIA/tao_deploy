@@ -14,18 +14,16 @@
 
 """OCRNet TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
+import tensorrt as trt
+
+from nvidia_tao_core.config.ocrnet.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.ocrnet.dataloader import OCRNetLoader
 from nvidia_tao_deploy.cv.ocrnet.inferencer import OCRNetInferencer
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.ocrnet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.ocrnet.utils import decode_ctc, decode_attn
 
 
@@ -39,7 +37,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="experiment", schema=ExperimentConfig
 )
-@monitor_status(name="ocrnet", mode="inference")
+@monitor_status(name="ocrnet", mode='inference')
 def main(cfg: ExperimentConfig) -> None:
     """Convert encrypted uff or onnx model to TRT engine."""
     engine_file = cfg.inference.trt_engine
@@ -69,11 +67,11 @@ def main(cfg: ExperimentConfig) -> None:
     inf_dl = OCRNetLoader(shape=shape,
                           image_dirs=[img_dirs],
                           batch_size=batch_size,
-                          dtype=ocrnet_engine.inputs[0].host.dtype)
+                          dtype=trt.nptype(ocrnet_engine.input_tensors[0].tensor_dtype))
 
     for idx, (imgs, _) in enumerate(inf_dl):
         y_preds = ocrnet_engine.infer(imgs)
-        output_probs, output_ids = y_preds
+        output_ids, output_probs = y_preds
         img_paths = inf_dl.image_paths[idx * batch_size: (idx + 1) * batch_size]
         assert len(output_ids) == len(output_probs) == len(img_paths)
         for img_path, output_id, output_prob in zip(img_paths, output_ids, output_probs):

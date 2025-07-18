@@ -35,7 +35,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='classification_tf1', mode='gen_trt_engine')
+@monitor_status(name='classification_tf1', mode='gen_trt_engine', hydra=False)
 def main(args):
     """Classification TRT convert."""
     # decrypt etlt
@@ -67,7 +67,8 @@ def main(args):
                                               min_batch_size=args.min_batch_size,
                                               opt_batch_size=args.opt_batch_size,
                                               max_batch_size=args.max_batch_size,
-                                              strict_type_constraints=args.strict_type_constraints)
+                                              strict_type_constraints=args.strict_type_constraints,
+                                              data_format="channels_last")
         builder.create_network(tmp_onnx_file, file_format)
         builder.create_engine(
             output_engine_path,
@@ -76,9 +77,8 @@ def main(args):
             calib_input=args.cal_image_dir,
             calib_cache=args.cal_cache_file,
             calib_num_images=args.batch_size * args.batches,
-            calib_batch_size=args.batch_size)
-
-    print("Export finished successfully.")
+            calib_batch_size=args.batch_size,
+            tf2=True)
 
 
 def build_command_line_parser(parser=None):

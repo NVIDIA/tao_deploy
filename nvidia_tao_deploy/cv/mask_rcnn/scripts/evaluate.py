@@ -14,10 +14,6 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import operator
@@ -26,6 +22,7 @@ import logging
 import json
 import six
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -40,7 +37,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='mask_rcnn', mode='evaluation')
+@monitor_status(name='mask_rcnn', mode='evaluate', hydra=False)
 def main(args):
     """MRCNN TRT evaluation."""
     # Load from proto-based spec file
@@ -61,8 +58,8 @@ def main(args):
         val_json_file,
         batch_size=trt_infer.max_batch_size,
         data_format="channels_first",
-        shape=[trt_infer.max_batch_size] + list(trt_infer._input_shape),
-        dtype=trt_infer.inputs[0].host.dtype,
+        shape=trt_infer.input_tensors[0].tensor_shape,
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
         image_dir=args.image_dir,
         eval_samples=eval_samples)
 

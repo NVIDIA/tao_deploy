@@ -21,15 +21,16 @@ import logging
 import json
 import six
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
+
+from nvidia_tao_core.config.efficientdet_tf2.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.efficientdet_tf1.dataloader import EfficientDetCOCOLoader
 from nvidia_tao_deploy.cv.efficientdet_tf2.inferencer import EfficientDetInferencer
-from nvidia_tao_deploy.cv.efficientdet_tf2.hydra_config.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.common.utils import update_results_dir
 from nvidia_tao_deploy.metrics.coco_metric import EvaluationMetric
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -44,11 +45,10 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 def main(cfg: ExperimentConfig) -> None:
     """Wrapper function for TRT engine evaluation."""
-    cfg = update_results_dir(cfg, 'evaluate')
     run_evaluation(cfg=cfg)
 
 
-@monitor_status(name='efficientdet_tf2', mode='evaluation')
+@monitor_status(name='efficientdet_tf2', mode='evaluate')
 def run_evaluation(cfg: ExperimentConfig) -> None:
     """EfficientDet TRT evaluation."""
     eval_samples = cfg.evaluate.num_samples
@@ -56,10 +56,12 @@ def run_evaluation(cfg: ExperimentConfig) -> None:
     eval_metric = EvaluationMetric(cfg.dataset.val_json_file, include_mask=False)
     trt_infer = EfficientDetInferencer(cfg.evaluate.trt_engine)
 
+    c, h, w = trt_infer.input_tensors[0].shape
+
     dl = EfficientDetCOCOLoader(
         cfg.dataset.val_json_file,
-        shape=trt_infer.inputs[0]['shape'],
-        dtype=trt_infer.inputs[0]['dtype'],
+        shape=(cfg.evaluate.batch_size, c, h, w),
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
         batch_size=cfg.evaluate.batch_size,
         image_dir=cfg.dataset.val_dirs[0],
         eval_samples=eval_samples)

@@ -21,15 +21,17 @@ import logging
 import json
 import six
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer
+
+from nvidia_tao_core.config.grounding_dino.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.deformable_detr.dataloader import DDETRCOCOLoader
 from nvidia_tao_deploy.cv.grounding_dino.inferencer import GDINOInferencer
 from nvidia_tao_deploy.cv.grounding_dino.utils import post_process, tokenize_captions
-from nvidia_tao_deploy.cv.grounding_dino.hydra_config.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.metrics.coco_metric import EvaluationMetric
 
@@ -44,7 +46,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="evaluate", schema=ExperimentConfig
 )
-@monitor_status(name='grounding_dino', mode='evaluation')
+@monitor_status(name='grounding_dino', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Grounding DINO DINO TRT evaluation."""
     if not os.path.exists(cfg.evaluate.trt_engine):
@@ -58,12 +60,12 @@ def main(cfg: ExperimentConfig) -> None:
                                 batch_size=cfg.dataset.batch_size,
                                 num_classes=max_text_len)
 
-    c, h, w = trt_infer._input_shape[0]
+    c, h, w = trt_infer.input_tensors[0].shape
 
     dl = DDETRCOCOLoader(
         val_json_file=cfg.dataset.test_data_sources.json_file,
         shape=(cfg.dataset.batch_size, c, h, w),
-        dtype=trt_infer.inputs[0].host.dtype,
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
         batch_size=cfg.dataset.batch_size,
         data_format="channels_first",
         img_mean=cfg.dataset.augmentation.input_mean,
@@ -120,18 +122,12 @@ def main(cfg: ExperimentConfig) -> None:
         predictions['image_info'].append(image_info)
         predictions['source_id'].append(source_id)
 
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_evaluate")
-    os.makedirs(results_dir, exist_ok=True)
-
     eval_results = evaluation_preds(preds=predictions)
     for key, value in sorted(eval_results.items(), key=operator.itemgetter(0)):
         eval_results[key] = float(value)
         logging.info("%s: %.9f", key, value)
 
-    with open(os.path.join(results_dir, "results.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(cfg.results_dir, "results.json"), "w", encoding="utf-8") as f:
         json.dump(eval_results, f)
 
     logging.info("Finished evaluation.")

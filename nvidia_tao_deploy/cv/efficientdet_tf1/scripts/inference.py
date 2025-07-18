@@ -14,16 +14,13 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 from PIL import Image
 import logging
 
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -47,19 +44,19 @@ def get_label_dict(label_txt):
         return result
 
 
-@monitor_status(name='efficientdet_tf1', mode='inference')
+@monitor_status(name='efficientdet_tf1', mode='inference', hydra=False)
 def main(args):
     """EfficientDet TRT inference."""
     # Load from proto-based spec file
     es = load_proto(args.experiment_spec)
 
     max_detections_per_image = es.eval_config.max_detections_per_image if es.eval_config.max_detections_per_image else 100
-    trt_infer = EfficientDetInferencer(args.model_path, max_detections_per_image=max_detections_per_image)
+    trt_infer = EfficientDetInferencer(args.model_path, max_detections_per_image=max_detections_per_image, data_format="channel_last")
 
     # Inference may not have labels. Hence, use image batcher
     batcher = ImageBatcher(args.image_dir,
-                           tuple(trt_infer._input_shape),
-                           trt_infer.inputs[0]['dtype'],
+                           trt_infer.input_tensors[0].tensor_shape,
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="EfficientDet")
 
     # Create results directories

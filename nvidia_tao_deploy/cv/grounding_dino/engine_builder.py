@@ -17,11 +17,10 @@
 import logging
 import os
 import sys
-import onnx
 
 import tensorrt as trt
 
-from nvidia_tao_deploy.engine.builder import EngineBuilder
+from nvidia_tao_deploy.engine.builder import EngineBuilder, TRT_8_API
 
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -34,8 +33,6 @@ class GDINODetEngineBuilder(EngineBuilder):
 
     def __init__(
         self,
-        input_dims,
-        is_dynamic=False,
         max_text_len=256,
         img_std=[0.229, 0.224, 0.225],
         **kwargs
@@ -46,21 +43,8 @@ class GDINODetEngineBuilder(EngineBuilder):
             data_format (str): data_format.
         """
         super().__init__(**kwargs)
-        self._input_dims = input_dims
-        self.is_dynamic = is_dynamic
         self.max_text_len = max_text_len
         self._img_std = img_std
-
-    def get_onnx_input_dims(self, model_path):
-        """Get input dimension of ONNX model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        logger.info('List inputs:')
-        for i, inputs in enumerate(onnx_inputs):
-            logger.info('Input %s -> %s.', i, inputs.name)
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][1:])
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][0])
-            return [i.dim_value for i in inputs.type.tensor_type.shape.dim][:]
 
     def create_network(self, model_path, file_format="onnx"):
         """Parse the UFF/ONNX graph and create the corresponding TensorRT network definition.
@@ -69,38 +53,40 @@ class GDINODetEngineBuilder(EngineBuilder):
             model_path: The path to the UFF/ONNX graph to load.
             file_format: The file format of the decrypted etlt file (default: onnx).
         """
-        logger.info("Parsing ONNX model")
-        self.batch_size = self._input_dims[0]
-        self._input_dims = self._input_dims[1:]
+        if file_format == "onnx":
+            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+            if TRT_8_API:
+                network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
 
-        network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
-        network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
+            self.network = self.builder.create_network(network_flags)
+            self.parser = trt.OnnxParser(self.network, self.trt_logger)
 
-        self.network = self.builder.create_network(network_flags)
-        self.parser = trt.OnnxParser(self.network, self.trt_logger)
-
-        model_path = os.path.realpath(model_path)
-        with open(model_path, "rb") as f:
-            if not self.parser.parse(f.read()):
+            model_path = os.path.realpath(model_path)
+            if not self.parser.parse_from_file(model_path):
                 logger.error("Failed to load ONNX file: %s", model_path)
                 for error in range(self.parser.num_errors):
                     logger.error(self.parser.get_error(error))
                 sys.exit(1)
 
-        inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-        outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
+            inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
+            outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
 
-        logger.info("Network Description")
-        for input in inputs: # noqa pylint: disable=W0622
-            logger.info("Input '%s' with shape %s and dtype %s", input.name, input.shape, input.dtype)
-        for output in outputs:
-            logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
+            logger.info("Parsing ONNX model")
+            # input_dims are a dict {name: shape}
+            input_dims = self.get_onnx_input_dims(inputs)
+            batch_sizes = {v[0] for v in input_dims.values()}
+            assert len(batch_sizes) == 1, (
+                "All tensors should have the same batch size."
+            )
+            self.batch_size = list(batch_sizes)[0]
+            # self._input_dims = {}
+            # for k, v in input_dims.items():
+            #     self._input_dims[k] = v[1:]
 
-        if self.is_dynamic:  # dynamic batch size
-            logger.info("dynamic batch size handling")
+            logger.info("Network Description")
             opt_profile = self.builder.create_optimization_profile()
-
             for model_input in inputs:
+                logger.info("Input '%s' with shape %s and dtype %s", model_input.name, model_input.shape, model_input.dtype)
                 input_shape = model_input.shape
                 input_name = model_input.name
                 if input_name == 'inputs':
@@ -120,44 +106,12 @@ class GDINODetEngineBuilder(EngineBuilder):
                                       min=real_shape_min,
                                       opt=real_shape_opt,
                                       max=real_shape_max)
+
             self.config.add_optimization_profile(opt_profile)
             self.config.set_calibration_profile(opt_profile)
 
-    def create_engine(self, engine_path, precision,
-                      calib_input=None, calib_cache=None, calib_num_images=5000,
-                      calib_batch_size=8, calib_data_file=None):
-        """Build the TensorRT engine and serialize it to disk.
+            for output in outputs:
+                logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
 
-        Args:
-            engine_path: The path where to serialize the engine to.
-            precision: The datatype to use for the engine, either 'fp32', 'fp16' or 'int8'.
-            calib_input: The path to a directory holding the calibration images.
-            calib_cache: The path where to write the calibration cache to,
-                         or if it already exists, load it from.
-            calib_num_images: The maximum number of images to use for calibration.
-            calib_batch_size: The batch size to use for the calibration process.
-        """
-        engine_path = os.path.realpath(engine_path)
-        engine_dir = os.path.dirname(engine_path)
-        os.makedirs(engine_dir, exist_ok=True)
-        logger.debug("Building %s Engine in %s", precision, engine_path)
-
-        # inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-
-        if self.batch_size is None:
-            self.batch_size = calib_batch_size
-            self.builder.max_batch_size = self.batch_size
-
-        if precision == "fp16":
-            if not self.builder.platform_has_fast_fp16:
-                logger.warning("FP16 is not supported natively on this platform/device")
-            else:
-                self.config.set_flag(trt.BuilderFlag.FP16)
-        elif precision == "int8":
-            raise ValueError("Int8 not supported!")
-
-        # self._logger_info_IBuilderConfig()
-        with self.builder.build_engine(self.network, self.config) as engine, \
-                open(engine_path, "wb") as f:
-            logger.debug("Serializing engine to file: %s", engine_path)
-            f.write(engine.serialize())
+        else:
+            raise NotImplementedError(f"{file_format.capitalize()} backend is not supported for D-DETR.")

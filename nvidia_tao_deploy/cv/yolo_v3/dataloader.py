@@ -14,10 +14,6 @@
 
 """YOLOv3 loader."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import cv2
 import numpy as np
@@ -43,9 +39,9 @@ def aug_letterbox_resize(img, boxes, num_channels=3, resize_shape=(512, 512)):
     """
     img = np.array(img).astype(np.float32)
     if num_channels == 1:
-        new_img = np.zeros((resize_shape[1], resize_shape[0]), dtype=np.float)
+        new_img = np.zeros((resize_shape[1], resize_shape[0]), dtype=float)
     else:
-        new_img = np.zeros((resize_shape[1], resize_shape[0], 3), dtype=np.float)
+        new_img = np.zeros((resize_shape[1], resize_shape[0], 3), dtype=float)
     new_img += np.mean(img, axis=(0, 1), keepdims=True)
     h, w = img.shape[0], img.shape[1]
     ratio = min(float(resize_shape[1]) / h, float(resize_shape[0]) / w)
@@ -54,7 +50,7 @@ def aug_letterbox_resize(img, boxes, num_channels=3, resize_shape=(512, 512)):
     l_shift = (resize_shape[0] - new_w) // 2
     t_shift = (resize_shape[1] - new_h) // 2
     img = cv2.resize(img, (new_w, new_h), cv2.INTER_LINEAR)
-    new_img[t_shift: t_shift + new_h, l_shift: l_shift + new_w] = img.astype(np.float)
+    new_img[t_shift: t_shift + new_h, l_shift: l_shift + new_w] = img.astype(float)
 
     xmin = (boxes[:, 0] * new_w + l_shift) / float(resize_shape[0])
     xmax = (boxes[:, 2] * new_w + l_shift) / float(resize_shape[0])

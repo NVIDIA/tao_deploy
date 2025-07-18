@@ -14,10 +14,6 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import operator
@@ -26,6 +22,7 @@ import logging
 import json
 import six
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -40,7 +37,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='efficientdet_tf1', mode='evaluation')
+@monitor_status(name='efficientdet_tf1', mode='evaluate', hydra=False)
 def main(args):
     """EfficientDet TRT evaluation."""
     # Load from proto-based spec file
@@ -49,12 +46,14 @@ def main(args):
     eval_samples = es.eval_config.eval_samples if es.eval_config.eval_samples else 0
 
     eval_metric = EvaluationMetric(es.dataset_config.validation_json_file, include_mask=False)
-    trt_infer = EfficientDetInferencer(args.model_path)
+    trt_infer = EfficientDetInferencer(args.model_path, data_format="channel_last")
+
+    h, w, c = trt_infer.input_tensors[0].shape
 
     dl = EfficientDetCOCOLoader(
         es.dataset_config.validation_json_file,
-        shape=trt_infer.inputs[0]['shape'],
-        dtype=trt_infer.inputs[0]['dtype'],
+        shape=(1, h, w, c),
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
         batch_size=1,  # TF1 EfficentDet only supports bs=1
         image_dir=args.image_dir,
         eval_samples=eval_samples)
@@ -85,6 +84,7 @@ def main(args):
             image_info.append([label[-1][0], label[-1][1], scale[i], label[-1][2], label[-1][3]])
         image_info = np.array(image_info)
         detections = trt_infer.infer(image, scale)
+        detections = copy.deepcopy(detections)
 
         predictions['detection_classes'].append(detections['detection_classes'])
         predictions['detection_scores'].append(detections['detection_scores'])

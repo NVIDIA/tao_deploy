@@ -14,10 +14,6 @@
 
 """Optical Inspection loader."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import math
 import os
 from abc import ABC

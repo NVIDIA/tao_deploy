@@ -21,12 +21,13 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from nvidia_tao_deploy.cv.ocdnet.hydra_config.default_config import ExperimentConfig
+
+from nvidia_tao_core.config.ocdnet.default_config import ExperimentConfig
+from nvidia_tao_deploy.cv.ocdnet.inferencer import OCDNetInferencer
 from nvidia_tao_deploy.cv.ocdnet.post_processing.seg_detector_representer import get_post_processing
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.ocdnet.utils.utils import show_img, draw_bbox, save_result, get_file_list
-from nvidia_tao_deploy.cv.ocdnet.tensorrt_utils.tensorrt_model import TrtModel
 
 __dir__ = pathlib.Path(os.path.abspath(__file__))
 sys.path.append(str(__dir__))
@@ -38,6 +39,8 @@ def resize_image(img, image_size):
     resized_img = cv2.resize(img, image_size)
     return resized_img
 
+# @seanf: Inference uses a batch size of 1
+
 
 class Inferencer:
     """Infer class."""
@@ -48,9 +51,7 @@ class Inferencer:
         self.post_process = get_post_processing(config['inference']['post_processing'])
         self.post_process.box_thresh = post_p_thre
         self.img_mode = config['inference']['img_mode']
-        self.model = TrtModel(model_path, 1)
-        self.model.build_or_load_trt_engine()
-        self.is_trt = True
+        self.model = OCDNetInferencer(model_path, batch_size=1)
 
     def predict(self, img_path: str, image_size, is_output_polygon=False):
         """Run prediction."""
@@ -66,8 +67,9 @@ class Inferencer:
         image = np.transpose(image, (2, 0, 1)).astype(np.float32)
         batch = {'img': image}
         start = time.time()
-        if self.is_trt:
-            preds = self.model.predict({"input": image})["pred"]
+        # @seanf: dataloader always uses a batch size of 1
+        image = np.expand_dims(batch["img"], axis=0)
+        preds = self.model.infer(image)
         box_list, score_list = self.post_process(batch, preds, is_output_polygon=is_output_polygon)  # pylint: disable=possibly-used-before-assignment
         box_list, score_list = box_list[0], score_list[0]
         if len(box_list) > 0:
@@ -127,20 +129,14 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @hydra_runner(
     config_path=os.path.join(spec_root, "specs"), config_name="inference", schema=ExperimentConfig
 )
-@monitor_status(name="ocdnet", mode="inference")
+@monitor_status(name="ocdnet", mode='inference')
 def main(cfg: ExperimentConfig) -> None:
     """Run the inference process."""
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "inference")
-    os.makedirs(results_dir, exist_ok=True)
-
     run_experiment(experiment_config=cfg,
                    model_path=cfg.inference.trt_engine,
                    post_p_thre=cfg.inference.post_processing.args.box_thresh,
                    input_folder=cfg.inference.input_folder,
-                   output_folder=results_dir,
+                   output_folder=cfg.results_dir,
                    width=cfg.inference.width,
                    height=cfg.inference.height,
                    polygon=cfg.inference.polygon,

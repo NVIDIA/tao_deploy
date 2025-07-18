@@ -44,22 +44,19 @@ train:
   loss: contrastive
   num_epochs: 15
   checkpoint_interval: 5
-  results_dir: "${results_dir}/train"
 evaluate:
   gpu_ids: [0]
-  checkpoint: "${results_dir}/train/oi_model_epoch=004.pth"
-  results_dir: "${results_dir}/evaluate"
+  checkpoint: "???"
+  trt_engine: "???"
 export:
-  checkpoint: "${train.results_dir}/oi_model.pth"
-  results_dir: "${results_dir}/export"
-  onnx_file: "${export.results_dir}/oi_model.onnx"
+  checkpoint: "???"
+  onnx_file: "???"
 inference:
   gpu_ids: [0]
-  results_dir: "${results_dir}/inference"
-  trt_engine: "${gen_trt_engine.trt_engine}"
+  checkpoint: "???"
+  trt_engine: "???"
   batch_size: ${dataset.batch_size}
 gen_trt_engine:
-  results_dir: "${results_dir}/gen_trt_engine"
-  onnx_file: "${results_dir}/export/oi_model.onnx"
-  trt_engine: "${gen_trt_engine.results_dir}/oi_model.trt.v100"
+  onnx_file: "???"
+  trt_engine: "???"
   batch_size: ${dataset.batch_size}

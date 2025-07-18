@@ -14,20 +14,18 @@
 
 """OCRNet TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
 import json
+import tensorrt as trt
 from tqdm import tqdm
+
+from nvidia_tao_core.config.ocrnet.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.ocrnet.dataloader import OCRNetLoader
 from nvidia_tao_deploy.cv.ocrnet.inferencer import OCRNetInferencer
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.ocrnet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.ocrnet.utils import decode_ctc, decode_attn
 
 
@@ -41,7 +39,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="experiment", schema=ExperimentConfig
 )
-@monitor_status(name="ocrnet", mode="evaluation")
+@monitor_status(name="ocrnet", mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Convert encrypted uff or onnx model to TRT engine."""
     engine_file = cfg.evaluate.trt_engine
@@ -74,13 +72,13 @@ def main(cfg: ExperimentConfig) -> None:
                           image_dirs=[img_dirs],
                           label_txts=[gt_list],
                           batch_size=batch_size,
-                          dtype=ocrnet_engine.inputs[0].host.dtype)
+                          dtype=trt.nptype(ocrnet_engine.input_tensors[0].tensor_dtype))
 
     total_cnt = 0
     acc_cnt = 0
     for imgs, labels in tqdm(inf_dl):
         y_preds = ocrnet_engine.infer(imgs)
-        output_probs, output_ids = y_preds
+        output_ids, output_probs = y_preds
         total_cnt += len(output_ids)
         for output_id, output_prob, label in zip(output_ids, output_probs, labels):
             if prediction_type == "CTC":
@@ -90,7 +88,7 @@ def main(cfg: ExperimentConfig) -> None:
             if text == label:
                 acc_cnt += 1
 
-    log_info = f"Accuracy: {acc_cnt}/{total_cnt} {float(acc_cnt)/float(total_cnt)}"
+    log_info = f"Accuracy: {acc_cnt}/{total_cnt} {float(acc_cnt) / float(total_cnt)}"
     acc = float(acc_cnt) / float(total_cnt)
     # logging.info("Accuracy: {}/{} {}".format(acc_cnt, total_cnt, float(acc_cnt)/float(total_cnt)))
     logging.info(log_info)

@@ -14,8 +14,6 @@
 
 """Helper function to decode ctc trained model's output."""
 
-import numpy as np
-
 
 def decode_ctc_conf(pred,
                     classes,
@@ -27,9 +25,10 @@ def decode_ctc_conf(pred,
     pred_id = []
     pred_conf = []
     for pred_item in pred:
-        if pred_item.dtype == np.float32:
+        # Looking at first element of first output batch
+        if isinstance(pred_item[0][0], float):
             pred_conf = pred_item
-        elif pred_item.dtype == np.int32:
+        elif isinstance(pred_item[0][0], int):
             pred_id = pred_item
         else:
             raise ValueError("Unsupported output data type.")

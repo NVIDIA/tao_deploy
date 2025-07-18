@@ -14,18 +14,16 @@
 
 """Optical Inspection TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
+import tensorrt as trt
+
+from nvidia_tao_core.config.optical_inspection.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.optical_inspection.inferencer import OpticalInspectionInferencer
 from nvidia_tao_deploy.cv.optical_inspection.dataloader import OpticalInspectionDataLoader
-from nvidia_tao_deploy.cv.optical_inspection.hydra_config.default_config import ExperimentConfig
 
 from sklearn import metrics
 from tqdm import tqdm
@@ -40,18 +38,13 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="experiment", schema=ExperimentConfig
 )
-@monitor_status(name="optical_inspection", mode="inference")
+@monitor_status(name="optical_inspection", mode='inference')
 def main(cfg: ExperimentConfig) -> None:
     """Convert encrypted uff or onnx model to TRT engine."""
     logger.info("Running inference")
     engine_file = cfg.inference.trt_engine
     batch_size = cfg.inference.batch_size
     dataset_config = cfg.dataset
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "inference")
-    os.makedirs(results_dir, exist_ok=True)
 
     logger.info("Instantiate the optical inspection inferencer.")
     optical_inspection_inferencer = OpticalInspectionInferencer(
@@ -65,7 +58,7 @@ def main(cfg: ExperimentConfig) -> None:
         input_data_path=dataset_config.infer_dataset.images_dir,
         train=False,
         data_config=dataset_config,
-        dtype=optical_inspection_inferencer.inputs[0].host.dtype,
+        dtype=trt.nptype(optical_inspection_inferencer.input_tensors[0].tensor_dtype),
         batch_size=batch_size
     )
     inference_score = []
@@ -85,7 +78,7 @@ def main(cfg: ExperimentConfig) -> None:
     logger.info("Total number of inference outputs: {}".format(len(inference_score)))
     infer_dataloader.merged["output_score"] = inference_score[:len(infer_dataloader.merged)]
     infer_dataloader.merged.to_csv(
-        os.path.join(results_dir, "inference.csv"),
+        os.path.join(cfg.results_dir, "inference.csv"),
         header=True,
         index=False
     )

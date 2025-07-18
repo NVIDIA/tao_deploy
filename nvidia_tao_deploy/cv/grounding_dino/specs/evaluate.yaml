@@ -1,12 +1,11 @@
-results_dir: /home/scratch.p3/sean/groundingdino/tao_integration/
 dataset:
   test_data_sources:
-    image_dir: /home/scratch.p3/sean/datasets/coco/raw-data/val2017/
-    json_file: /home/scratch.p3/sean/datasets/coco/raw-data/annotations/instances_val2017_remapped.json
-  batch_size: 4
+    image_dir: /data/HardHatWorkers/raw/valid/
+    json_file: /data/odvg/annotations/annotations_without_background_remapped.json
+  batch_size: 2
   workers: 8
 evaluate:
-  trt_engine: /home/scratch.p3/sean/groundingdino/tao_integration/swint2.engine
+  # trt_engine: /home/scratch.p3/sean/groundingdino/tao_integration/swint2.engine
   input_width: 960
   input_height: 544
 model:

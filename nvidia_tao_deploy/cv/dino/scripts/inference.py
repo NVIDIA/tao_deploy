@@ -18,12 +18,14 @@ import os
 import logging
 import numpy as np
 from PIL import Image
+import tensorrt as trt
 from tqdm.auto import tqdm
+
+from nvidia_tao_core.config.dino.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.deformable_detr.inferencer import DDETRInferencer
 from nvidia_tao_deploy.cv.deformable_detr.utils import post_process
-from nvidia_tao_deploy.cv.dino.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
@@ -46,13 +48,12 @@ def main(cfg: ExperimentConfig) -> None:
         raise FileNotFoundError(f"Provided inference.trt_engine at {cfg.inference.trt_engine} does not exist!")
 
     trt_infer = DDETRInferencer(cfg.inference.trt_engine,
-                                batch_size=cfg.dataset.batch_size,
-                                num_classes=cfg.dataset.num_classes)
+                                batch_size=cfg.dataset.batch_size)
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
     batcher = ImageBatcher(list(cfg.dataset.infer_data_sources.image_dir),
                            (cfg.dataset.batch_size, c, h, w),
-                           trt_infer.inputs[0].host.dtype,
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="DDETR")
 
     with open(cfg.dataset.infer_data_sources.classmap, "r", encoding="utf-8") as f:
@@ -60,13 +61,8 @@ def main(cfg: ExperimentConfig) -> None:
     classes = {c: i + 1 for i, c in enumerate(classmap)}
 
     # Create results directories
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_inference")
-    os.makedirs(results_dir, exist_ok=True)
-    output_annotate_root = os.path.join(results_dir, "images_annotated")
-    output_label_root = os.path.join(results_dir, "labels")
+    output_annotate_root = os.path.join(cfg.results_dir, "images_annotated")
+    output_label_root = os.path.join(cfg.results_dir, "labels")
 
     os.makedirs(output_annotate_root, exist_ok=True)
     os.makedirs(output_label_root, exist_ok=True)

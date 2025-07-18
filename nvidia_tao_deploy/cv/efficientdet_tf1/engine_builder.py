@@ -17,11 +17,10 @@
 import logging
 import os
 import sys
-import onnx
 
 import tensorrt as trt
 
-from nvidia_tao_deploy.engine.builder import EngineBuilder
+from nvidia_tao_deploy.engine.builder import TRT_8_API, EngineBuilder
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
                     level="INFO")
@@ -31,16 +30,6 @@ logger = logging.getLogger(__name__)
 class EfficientDetEngineBuilder(EngineBuilder):
     """Parses an ONNX graph and builds a TensorRT engine from it."""
 
-    def get_input_dims(self, model_path):
-        """Get input dimension of UFF model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        logger.info('List inputs:')
-        for i, inputs in enumerate(onnx_inputs):
-            logger.info('Input %s -> %s.', i, inputs.name)
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][1:])
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][0])
-
     def create_network(self, model_path, file_format="onnx"):
         """Parse the ONNX graph and create the corresponding TensorRT network definition.
 
@@ -48,8 +37,9 @@ class EfficientDetEngineBuilder(EngineBuilder):
             model_path: The path to the ONNX graph to load.
         """
         if file_format == "onnx":
-            self.get_input_dims(model_path)
-            network_flags = (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+            if TRT_8_API:
+                network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
 
             self.network = self.builder.create_network(network_flags)
             self.parser = trt.OnnxParser(self.network, self.trt_logger)
@@ -63,6 +53,18 @@ class EfficientDetEngineBuilder(EngineBuilder):
 
             inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
             outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
+
+            logger.info("Parsing ONNX model")
+            # input_dims are a dict {name: shape}
+            input_dims = self.get_onnx_input_dims(inputs)
+            batch_sizes = {v[0] for v in input_dims.values()}
+            assert len(batch_sizes) == 1, (
+                "All tensors should have the same batch size."
+            )
+            self.batch_size = list(batch_sizes)[0]
+            self._input_dims = {}
+            for k, v in input_dims.items():
+                self._input_dims[k] = v[1:]
 
             logger.info("Network Description")
             for input in inputs: # noqa pylint: disable=W0622

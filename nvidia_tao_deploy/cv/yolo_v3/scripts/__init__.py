@@ -13,7 +13,3 @@
 # limitations under the License.
 
 """TAO Deploy YOLOv3 scripts module."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function

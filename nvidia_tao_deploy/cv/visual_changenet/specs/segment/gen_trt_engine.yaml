@@ -12,9 +12,6 @@ gen_trt_engine:
   onnx_file: "???"
   trt_engine: "???"
   batch_size: -1
-  input_channel: 3
-  input_width: 256
-  input_height: 256
   tensorrt:
     data_type: FP32
     workspace_size: 1024

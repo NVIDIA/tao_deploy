@@ -108,7 +108,6 @@ def command_line_parser(parser, subtasks):
     """Build command line parser."""
     parser.add_argument(
         "subtask",
-        default="gen_trt_engine",
         choices=subtasks.keys(),
         help="Subtask for a given task/model.",
     )
@@ -199,7 +198,8 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
                         gpu_ids = exp_config[args["subtask"]]['gpu_ids']
         # @seanf: For now, we don't support multi-gpu for any task
         num_gpus = 1
-        gpu_ids = [0]
+        if len(gpu_ids) > 1:
+            gpu_ids = [max(gpu_ids)]
     else:
         if "gen_trt_engine.gpu_id" in unknown_args_as_str:
             gpu_ids = [int(
@@ -222,7 +222,8 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
 
     log_file = ""
     if os.getenv("JOB_ID"):
-        log_file = f"/{os.getenv('JOB_ID')}.txt"
+        logs_dir = os.getenv('TAO_MICROSERVICES_TTY_LOG', '/results')
+        log_file = f"{logs_dir}/{os.getenv('JOB_ID')}/microservices_log.txt"
 
     task_command = f"python {script} {script_args} {unknown_args_as_str}"
     logger.debug(task_command)
@@ -310,12 +311,7 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
             status_level=status_logging.Status.FAILURE,
         )
         logger.info("Execution status: FAIL")
-        return False
-
-    status_logging.get_status_logger().write(
-        message=f"{args['subtask']} action completed successfully for {network}",
-        status_level=status_logging.Status.SUCCESS,
-    )
+        sys.exit(1)
 
     logger.info("Execution status: PASS")
-    return True
+    sys.exit(0)

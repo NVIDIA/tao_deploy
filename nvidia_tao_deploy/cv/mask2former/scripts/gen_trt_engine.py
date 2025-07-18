@@ -17,10 +17,12 @@
 import logging
 import os
 
+from nvidia_tao_core.config.mask2former.default_config import ExperimentConfig
+
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
+from nvidia_tao_deploy.cv.common.initialize_experiments import initialize_gen_trt_engine_experiment
 from nvidia_tao_deploy.cv.mask2former.engine_builder import Mask2formerEngineBuilder
-from nvidia_tao_deploy.cv.mask2former.hydra_config.default_config import ExperimentConfig
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
                     level="INFO")
@@ -35,51 +37,23 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name='mask2former', mode='gen_trt_engine')
 def main(cfg: ExperimentConfig) -> None:
     """Convert onnx model to TRT engine."""
-    if cfg.gen_trt_engine.results_dir:
-        results_dir = cfg.gen_trt_engine.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "gen_trt_engine")
-    os.makedirs(results_dir, exist_ok=True)
+    engine_builder_kwargs, create_engine_kwargs = initialize_gen_trt_engine_experiment(cfg)
 
-    engine_file = cfg.gen_trt_engine.trt_engine
-    data_type = cfg.gen_trt_engine.tensorrt.data_type
-    assert data_type.lower() in ['fp32', 'fp16'], "Only FP32 and FP16 are supported."
     workspace_size = cfg.gen_trt_engine.tensorrt.workspace_size
-    min_batch_size = cfg.gen_trt_engine.tensorrt.min_batch_size
-    opt_batch_size = cfg.gen_trt_engine.tensorrt.opt_batch_size
-    max_batch_size = cfg.gen_trt_engine.tensorrt.max_batch_size
-    batch_size = cfg.gen_trt_engine.batch_size
-    num_channels = cfg.gen_trt_engine.input_channel
-    input_width = cfg.gen_trt_engine.input_width
-    input_height = cfg.gen_trt_engine.input_height
-
-    if batch_size is None or batch_size == -1:
-        input_batch_size = 1
-        is_dynamic = True
-    else:
-        input_batch_size = batch_size
-        is_dynamic = False
 
     builder = Mask2formerEngineBuilder(
+        **engine_builder_kwargs,
         workspace=workspace_size // 1024,
-        input_dims=(input_batch_size, num_channels, input_height, input_width),
-        is_dynamic=is_dynamic,
-        min_batch_size=min_batch_size,
-        opt_batch_size=opt_batch_size,
-        max_batch_size=max_batch_size,
-        img_std=None,
-        verbose=True)
+        img_std=None)
 
     builder.create_network(cfg.gen_trt_engine.onnx_file)
-    layer_precisions = {
+    create_engine_kwargs["layers_precision"] = {
         "/sem_seg_head/predictor/transformer_cross_attention_layers": "fp32",
-        "/post_processor": "fp32"
+        "/post_processor/Div": "fp32",
+        "/post_processor/ReduceSum": "fp32",
+        "/post_processor/Add": "fp32",
     }
-    builder.create_engine(
-        engine_file,
-        data_type,
-        layers_precision=layer_precisions
-    )
+    builder.create_engine(**create_engine_kwargs)
 
     print(f"TensorRT engine was saved at {cfg.gen_trt_engine.trt_engine}.")
 

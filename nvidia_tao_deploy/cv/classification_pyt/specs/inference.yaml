@@ -3,7 +3,5 @@ inference:
   trt_engine: "???"
   batch_size: 8
 dataset:
-  data:
-    test:
-      data_prefix: "???"
-      classes: "???"
+  test_dataset:
+    images_dir: "???"

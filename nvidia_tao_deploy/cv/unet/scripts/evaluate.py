@@ -14,13 +14,10 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import json
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 import logging
@@ -38,7 +35,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='unet', mode='evaluation')
+@monitor_status(name='unet', mode='evaluate', hydra=False)
 def main(args):
     """UNet TRT evaluation."""
     if not os.path.exists(args.experiment_spec):
@@ -55,7 +52,7 @@ def main(args):
     trt_infer = UNetInferencer(args.model_path, batch_size=args.batch_size, activation=params['activation'])
 
     dl = UNetLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         params['images_list'],
         params['masks_list'],
         params['num_classes'],
@@ -65,7 +62,7 @@ def main(args):
         resize_padding=params['resize_padding'],
         model_arch=params['arch'],
         input_image_type=params['input_image_type'],
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     eval_metric = SemSegMetric(num_classes=params['num_classes'],
                                train_id_name_mapping=params['train_id_name_mapping'],

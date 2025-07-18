@@ -18,15 +18,16 @@ import os
 from PIL import Image
 import logging
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
+from nvidia_tao_core.config.efficientdet_tf2.default_config import ExperimentConfig
+
 from nvidia_tao_deploy.cv.efficientdet_tf2.inferencer import EfficientDetInferencer
-from nvidia_tao_deploy.cv.efficientdet_tf2.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.efficientdet_tf2.utils import get_label_dict, get_label_map
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.common.utils import update_results_dir
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -41,7 +42,6 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 def main(cfg: ExperimentConfig) -> None:
     """Wrapper function for TRT engine inference."""
-    cfg = update_results_dir(cfg, 'inference')
     run_inference(cfg=cfg)
 
 
@@ -52,8 +52,8 @@ def run_inference(cfg: ExperimentConfig) -> None:
 
     # Inference may not have labels. Hence, use image batcher
     batcher = ImageBatcher(cfg.inference.image_dir,
-                           tuple(trt_infer._input_shape),
-                           trt_infer.inputs[0]['dtype'],
+                           tuple(trt_infer.input_tensors[0].tensor_shape),
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="EfficientDet")
 
     output_annotate_root = os.path.join(cfg.results_dir, "images_annotated")

@@ -15,9 +15,6 @@
 """Mask2former TensorRT engine builder."""
 
 import logging
-import os
-import sys
-import onnx
 
 import tensorrt as trt
 
@@ -39,8 +36,6 @@ class Mask2formerEngineBuilder(EngineBuilder):
 
     def __init__(
         self,
-        input_dims,
-        is_dynamic=False,
         data_format="channels_first",
         img_std=[0.229, 0.224, 0.225],
         **kwargs
@@ -51,127 +46,10 @@ class Mask2formerEngineBuilder(EngineBuilder):
             data_format (str): data_format.
         """
         super().__init__(**kwargs)
-        self._input_dims = input_dims
         self._data_format = data_format
-        self.is_dynamic = is_dynamic
         self._img_std = img_std
 
-    def get_onnx_input_dims(self, model_path):
-        """Get input dimension of ONNX model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        logger.info('List inputs:')
-        for i, inputs in enumerate(onnx_inputs):
-            logger.info('Input %s -> %s.', i, inputs.name)
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][1:])
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][0])
-            return [i.dim_value for i in inputs.type.tensor_type.shape.dim][:]
-
-    def create_network(self, model_path, file_format="onnx"):
-        """Parse the ONNX graph and create the corresponding TensorRT network definition.
-
-        Args:
-            model_path: The path to the UFF/ONNX graph to load.
-            file_format: The file format of the decrypted etlt file (default: onnx).
-        """
-        if file_format == "onnx":
-            logger.info("Parsing ONNX model")
-            self.batch_size = self._input_dims[0]
-            self._input_dims = self._input_dims[1:]
-
-            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
-            network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
-
-            self.network = self.builder.create_network(network_flags)
-
-            self.parser = trt.OnnxParser(self.network, self.trt_logger)
-
-            model_path = os.path.realpath(model_path)
-            with open(model_path, "rb") as f:
-                if not self.parser.parse(f.read()):
-                    logger.error("Failed to load ONNX file: %s", model_path)
-                    for error in range(self.parser.num_errors):
-                        logger.error(self.parser.get_error(error))
-                    sys.exit(1)
-
-            inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-            outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
-
-            logger.info("Network Description")
-            for input in inputs: # noqa pylint: disable=W0622
-                logger.info("Input '%s' with shape %s and dtype %s", input.name, input.shape, input.dtype)
-            for output in outputs:
-                logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
-
-            if self.is_dynamic:  # dynamic batch size
-                logger.info("dynamic batch size handling")
-                opt_profile = self.builder.create_optimization_profile()
-                model_input = self.network.get_input(0)
-                input_shape = model_input.shape
-                input_name = model_input.name
-                real_shape_min = (self.min_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_opt = (self.opt_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_max = (self.max_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                opt_profile.set_shape(input=input_name,
-                                      min=real_shape_min,
-                                      opt=real_shape_opt,
-                                      max=real_shape_max)
-                self.config.add_optimization_profile(opt_profile)
-                self.config.set_calibration_profile(opt_profile)
-        else:
-            raise NotImplementedError
-
-    def create_engine(self, engine_path, precision,
-                      calib_input=None, calib_cache=None, calib_num_images=5000,
-                      calib_batch_size=8, calib_data_file=None,
-                      layers_precision=None):
-        """Build the TensorRT engine and serialize it to disk.
-
-        Args:
-            engine_path: The path where to serialize the engine to.
-            precision: The datatype to use for the engine, either 'fp32', 'fp16' or 'int8'.
-            calib_input: The path to a directory holding the calibration images.
-            calib_cache: The path where to write the calibration cache to,
-                         or if it already exists, load it from.
-            calib_num_images: The maximum number of images to use for calibration.
-            calib_batch_size: The batch size to use for the calibration process.
-        """
-        engine_path = os.path.realpath(engine_path)
-        engine_dir = os.path.dirname(engine_path)
-        os.makedirs(engine_dir, exist_ok=True)
-        logger.debug("Building %s Engine in %s", precision, engine_path)
-
-        # inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-
-        if self.batch_size is None:
-            self.batch_size = calib_batch_size
-            self.builder.max_batch_size = self.batch_size
-
-        if precision == "fp16":
-            if not self.builder.platform_has_fast_fp16:
-                logger.warning("FP16 is not supported natively on this platform/device")
-            else:
-                self.config.set_flag(trt.BuilderFlag.FP16)
-        elif precision == "int8":
-            if not self.builder.platform_has_fast_int8:
-                logger.warning("INT8 is not supported natively on this platform/device")
-            else:
-                raise ValueError("Int8 not supported!")
-        if layers_precision is not None and len(layers_precision) > 0:
-            self.config.set_flag(trt.BuilderFlag.OBEY_PRECISION_CONSTRAINTS)
-            # self.config.set_flag(trt.BuilderFlag.PREFER_PRECISION_CONSTRAINTS)
-            self.setLayerPrecisions(layers_precision)
-
-        self._logger_info_IBuilderConfig()
-        with self.builder.build_engine(self.network, self.config) as engine, \
-                open(engine_path, "wb") as f:
-            logger.debug("Serializing engine to file: %s", engine_path)
-            f.write(engine.serialize())
-
-    def setLayerPrecisions(self, layerPrecisions):
+    def set_layer_precisions(self, layer_precisions):
         """Set the layer precision for specified layers.
 
         This function control per-layer precision constraints. Effective only when
@@ -182,33 +60,35 @@ class Mask2formerEngineBuilder(EngineBuilder):
             No explicit returns.
         """
         for layer in self.network:
-            layerName = layer.name
-            for k, v in layerPrecisions.items():
-                if k in layerName:
+            layer_name = layer.name
+            for k, v in layer_precisions.items():
+                if k in layer_name:
+                    if any(x in layer_name.lower() for x in ['/concat', '/gather', '/transpose', '/split', 'squeeze', '/expand', 'nonzero', '/tile']):
+                        continue
                     if layer.precision in (trt.int32, trt.bool):
                         logger.info("Skipped setting precision for layer {} because the \
-                                    default layer precision is INT32 or Bool.".format(layerName))
+                                    default layer precision is INT32 or Bool.".format(layer_name))
                         continue
 
                     #  We should not set the constant layer precision if its weights are in INT32.
                     if layer.type == trt.LayerType.CONSTANT:
                         logger.info("Skipped setting precision for layer {} because this \
-                                    constant layer has INT32 weights.".format(layerName))
+                                    constant layer has INT32 weights.".format(layer_name))
                         continue
 
                     #  We should not set the layer precision if the layer operates on a shape tensor.
-                    if layer.num_inputs >= 1 and layer.get_input(0).is_shape_tensor:
+                    if layer.num_inputs >= 1 and (layer.get_input(0).is_shape_tensor or layer.get_output(0).is_shape_tensor):
 
                         logger.info("Skipped setting precision for layer {} because this layer \
-                                    operates on a shape tensor.".format(layerName))
+                                    operates on a shape tensor.".format(layer_name))
                         continue
 
                     if (layer.num_inputs >= 1 and layer.get_input(0).dtype == trt.int32 and layer.num_outputs >= 1 and layer.get_output(0).dtype == trt.int32):
 
                         logger.info("Skipped setting precision for layer {} because this \
-                                    layer has INT32 input and output.".format(layerName))
+                                    layer has INT32 input and output.".format(layer_name))
                         continue
 
                     #  All heuristics passed. Set the layer precision.
                     layer.precision = precision_mapping[v]
-                    logger.info("Setting precision for layer {} to {}.".format(layerName, layer.precision))
+                    logger.info("Setting precision for layer {} to {}.".format(layer_name, layer.precision))

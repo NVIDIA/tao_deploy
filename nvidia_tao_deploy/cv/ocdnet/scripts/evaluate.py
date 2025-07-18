@@ -13,22 +13,21 @@
 # limitations under the License.
 
 """Evaluate a trained ocdnet model."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 import json
 import logging
+import numpy as np
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from nvidia_tao_deploy.cv.ocdnet.hydra_config.default_config import ExperimentConfig
+
+from nvidia_tao_core.config.ocdnet.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.ocdnet.data_loader.icdar_uber import get_dataloader
 from nvidia_tao_deploy.cv.ocdnet.post_processing.seg_detector_representer import get_post_processing
 from nvidia_tao_deploy.cv.ocdnet.utils.ocr_metric.icdar2015.quad_metric import get_metric
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.ocdnet.tensorrt_utils.tensorrt_model import TrtModel
+from nvidia_tao_deploy.cv.ocdnet.inferencer import OCDNetInferencer
 
 
 class Evaluate():
@@ -42,10 +41,7 @@ class Evaluate():
         self.post_process = get_post_processing(config['evaluate']['post_processing'])
         self.metric_cls = get_metric(config['evaluate']['metric'])
         self.box_thresh = config['evaluate']['post_processing']["args"]["box_thresh"]
-        self.trt_model = None
-        if model_path.split(".")[-1] in ["trt", "engine"]:
-            self.trt_model = TrtModel(model_path, 1)
-            self.trt_model.build_or_load_trt_engine()
+        self.trt_model = OCDNetInferencer(model_path, batch_size=1)
 
     def eval(self):
         """eval function."""
@@ -53,8 +49,9 @@ class Evaluate():
         for _, batch in tqdm(enumerate(self.validate_loader), total=len(self.validate_loader), desc='test model'):
             if _ >= len(self.validate_loader):
                 break
-            img = batch["img"]
-            preds = self.trt_model.predict({"input": img})["pred"]
+            # @seanf: dataloader always uses a batch size of 1
+            img = np.expand_dims(batch["img"], axis=0)
+            preds = self.trt_model.infer(img)
             boxes, scores = self.post_process(batch, preds, is_output_polygon=self.metric_cls.is_output_polygon)
             raw_metric = self.metric_cls.validate_measure(batch, (boxes, scores), box_thresh=self.box_thresh)
             raw_metrics.append(raw_metric)
@@ -85,15 +82,9 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @hydra_runner(
     config_path=os.path.join(spec_root, "specs"), config_name="evaluate", schema=ExperimentConfig
 )
-@monitor_status(name="ocdnet", mode="evaluation")
+@monitor_status(name="ocdnet", mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Run the evaluation process."""
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "evaluate")
-    os.makedirs(results_dir, exist_ok=True)
-
     run_experiment(experiment_config=cfg,
                    model_path=cfg.evaluate.trt_engine)
 

@@ -14,21 +14,43 @@
 
 """Base utility functions for TensorRT inferencer."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from typing import Optional
 import numpy as np
+from nvidia_tao_deploy.engine.builder import TRT_8_API
 
 import pycuda.autoinit # noqa pylint: disable=unused-import
 import pycuda.driver as cuda
 import tensorrt as trt
 
+BINDING_TO_NPTYPE = {
+    "Input": np.float32,
+    "NMS": np.float32,
+    "NMS_1": np.int32,
+    "BatchedNMS": np.int32,
+    "BatchedNMS_1": np.float32,
+    "BatchedNMS_2": np.float32,
+    "BatchedNMS_3": np.float32,
+    "generate_detections": np.float32,
+    "mask_head/mask_fcn_logits/BiasAdd": np.float32,
+    "softmax_1": np.float32,
+    "input_1": np.float32,
+    # D-DETR
+    "inputs": np.float32,
+    "pred_boxes": np.float32,
+    "pred_logits": np.float32,
+    "pred_masks": np.float32
+}
+
 
 class HostDeviceMem(object):
     """Clean data structure to handle host/device memory."""
 
-    def __init__(self, host_mem, device_mem, npshape, name: str = None):
+    def __init__(self,
+                 host_mem,
+                 device_mem,
+                 npshape,
+                 name: str = None,
+                 data_format: str = "channels_first"):
         """Initialize a HostDeviceMem data structure.
 
         Args:
@@ -42,6 +64,10 @@ class HostDeviceMem(object):
         self.host = host_mem
         self.device = device_mem
         self.numpy_shape = npshape
+        assert data_format in ["channels_first", "channels_last"], (
+            f"Invalid data format received. {data_format}"
+        )
+        self.data_format = data_format
         self.name = name
 
     def __str__(self):
@@ -54,8 +80,9 @@ class HostDeviceMem(object):
 
 
 def do_inference(context, bindings, inputs,
-                 outputs, stream, batch_size=1,
-                 execute_v2=False, return_raw=False):
+                 outputs, stream,
+                 batch_size=1, execute_v2=False,
+                 return_raw=False):
     """Generalization for multiple inputs/outputs.
 
     inputs and outputs are expected to be lists of HostDeviceMem objects.
@@ -64,9 +91,13 @@ def do_inference(context, bindings, inputs,
     for inp in inputs:
         cuda.memcpy_htod_async(inp.device, inp.host, stream)
     # Run inference.
-    if execute_v2:
-        context.execute_async_v2(bindings=bindings, stream_handle=stream.handle)
+    if execute_v2 or not TRT_8_API:
+        if TRT_8_API:
+            context.execute_v2(bindings=bindings)
+        else:
+            context.execute_async_v3(stream_handle=stream.handle)
     else:
+        # This is only usable if it's not running in compatibility mode.
         context.execute_async(batch_size=batch_size, bindings=bindings, stream_handle=stream.handle)
     # Transfer predictions back from the GPU.
     for out in outputs:
@@ -81,7 +112,7 @@ def do_inference(context, bindings, inputs,
     return [out.host for out in outputs]
 
 
-def allocate_buffers(engine, context=None, reshape=False):
+def allocate_buffers(engine, context=None, reshape=False, profile_idx: Optional[int] = None):
     """Allocates host and device buffer for TRT engine inference.
 
     This function is similair to the one in common.py, but
@@ -110,51 +141,51 @@ def allocate_buffers(engine, context=None, reshape=False):
     # it may change in the future, which could brake this sample here
     # when using lower precision [e.g. NMS output would not be np.float32
     # anymore, even though this is assumed in binding_to_type]
-    binding_to_type = {"Input": np.float32, "NMS": np.float32, "NMS_1": np.int32,
-                       "BatchedNMS": np.int32, "BatchedNMS_1": np.float32,
-                       "BatchedNMS_2": np.float32, "BatchedNMS_3": np.float32,
-                       "generate_detections": np.float32,
-                       "mask_head/mask_fcn_logits/BiasAdd": np.float32,
-                       "softmax_1": np.float32,
-                       "input_1": np.float32,
-                       # D-DETR
-                       "inputs": np.float32,
-                       "pred_boxes": np.float32,
-                       "pred_logits": np.float32,
-                       "pred_masks": np.float32}
-
-    for binding in engine:
-        binding_id = engine.get_binding_index(str(binding))
-        binding_name = engine.get_binding_name(binding_id)
-        if context:
-            size = trt.volume(context.get_binding_shape(binding_id))
-            dims = context.get_binding_shape(binding_id)
+    for idx in range(engine.num_io_tensors):
+        tensor_name = engine.get_tensor_name(idx)
+        is_input = engine.get_tensor_mode(tensor_name) == trt.TensorIOMode.INPUT
+        tensor_shape = engine.get_tensor_shape(tensor_name)
+        if is_input:
+            if tensor_shape[0] < 0:
+                profile_shape = engine.get_tensor_profile_shape(tensor_name, profile_idx)
+                assert len(profile_shape) == 3, (
+                    "There should be min, opt and max shapes."
+                    f"There are only {len(profile_shape)} with size {profile_shape}"
+                )
+                tensor_shape = profile_shape[-1]
         else:
-            size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
-            dims = engine.get_binding_shape(binding)
-        # avoid error when bind to a number (YOLO BatchedNMS)
-        size = engine.max_batch_size if size == 0 else size
-        if str(binding) in binding_to_type:
-            dtype = binding_to_type[str(binding)]
-        else:
-            dtype = trt.nptype(engine.get_binding_dtype(binding))
-        # Allocate host and device buffers
-        host_mem = cuda.pagelocked_empty(size, dtype)
+            tensor_shape = context.get_tensor_shape(tensor_name)
+        shape_valid = all(dim > 0 for dim in tensor_shape)
+        if not shape_valid:
+            raise ValueError(f"Tensor {tensor_name} has dynamic shape, but no profile was selected.")
 
-        # FRCNN requires host memory to be reshaped into target shape
-        if reshape and not engine.binding_is_input(binding):
-            if engine.has_implicit_batch_dimension:
-                target_shape = (engine.max_batch_size, dims[0], dims[1], dims[2])
+        size = trt.volume(tensor_shape)
+        trt_data_type = engine.get_tensor_dtype(tensor_name)
+        if tensor_name in BINDING_TO_NPTYPE.keys():
+            dtype = BINDING_TO_NPTYPE[tensor_name]
+        else:
+            if trt.nptype(trt_data_type):
+                dtype = np.dtype(trt.nptype(trt_data_type))
             else:
-                target_shape = dims
-            host_mem = host_mem.reshape(*target_shape)
+                size = int(size * trt_data_type.itemsize)
+                dtype = np.uint8
 
+        host_mem = cuda.pagelocked_empty(size, dtype)
+        if reshape and not is_input:
+            if engine.has_implicit_batch_dimension:
+                target_shape = (engine.max_batch_size, tensor_shape[1], tensor_shape[2], tensor_shape[3])
+                host_mem = host_mem.reshape(*target_shape)
+            host_mem = host_mem.reshape(*tensor_shape)
         device_mem = cuda.mem_alloc(host_mem.nbytes)
-        # Append the device buffer to device bindings.
+        # Bindings holds addresses to device-allocated memory
         bindings.append(int(device_mem))
-        # Append to the appropriate list.
-        if engine.binding_is_input(binding):
-            inputs.append(HostDeviceMem(host_mem, device_mem, dims, name=binding_name))
+
+        # The tensor_shape we set here becomes the numpy_shape attribute we access during inference
+        # For static batch sizes, the inputs and outputs will both have the static batch size
+        # For dynamic batch sizes, the inputs will have max_batch_size, while the outputs will have the actual_batch_size
+        if is_input:
+            inputs.append(HostDeviceMem(host_mem, device_mem, tensor_shape, name=tensor_name))
         else:
-            outputs.append(HostDeviceMem(host_mem, device_mem, dims, name=binding_name))
+            outputs.append(HostDeviceMem(host_mem, device_mem, tensor_shape, name=tensor_name))
+
     return inputs, outputs, bindings, stream

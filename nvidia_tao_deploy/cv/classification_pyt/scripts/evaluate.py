@@ -14,25 +14,22 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 
 import os
 import json
 import numpy as np
 
+import tensorrt as trt
 from tqdm.auto import tqdm
 from sklearn.metrics import classification_report, confusion_matrix, top_k_accuracy_score
 
+from nvidia_tao_core.config.classification_pyt.default_config import ExperimentConfig
+
 from nvidia_tao_deploy.cv.classification_tf1.inferencer import ClassificationInferencer
 from nvidia_tao_deploy.cv.classification_tf1.dataloader import ClassificationLoader
-
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.classification_pyt.hydra_config.default_config import ExperimentConfig
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -45,15 +42,13 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="evaluate", schema=ExperimentConfig
 )
-@monitor_status(name='classification_pyt', mode='evaluation')
+@monitor_status(name='classification_pyt', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Classification TRT evaluation."""
-    classmap = cfg.dataset.data.test.classes
+    classmap = os.path.join(cfg.dataset.root_dir, 'classes.txt')
 
-    if classmap:
+    if os.path.exists(classmap):
         # if classmap is provided, we explicitly set the mapping from the text file
-        if not os.path.exists(classmap):
-            raise FileNotFoundError(f"{classmap} does not exist!")
 
         with open(classmap, "r", encoding="utf-8") as f:
             mapping_dict = {line.rstrip(): idx for idx, line in enumerate(sorted(f.readlines()))}
@@ -61,37 +56,36 @@ def main(cfg: ExperimentConfig) -> None:
         # If not, the order of the classes are alphanumeric as defined by Keras
         # Ref: https://github.com/keras-team/keras/blob/07e13740fd181fc3ddec7d9a594d8a08666645f6/keras/preprocessing/image.py#L507
         mapping_dict = {}
-        for idx, subdir in enumerate(sorted(os.listdir(cfg.dataset.data.test.data_prefix))):
-            if os.path.isdir(os.path.join(cfg.dataset.data.test.data_prefix, subdir)):
+        for idx, subdir in enumerate(sorted(os.listdir(cfg.dataset.test_dataset.images_dir))):
+            if os.path.isdir(os.path.join(cfg.dataset.test_dataset.images_dir, subdir)):
                 mapping_dict[subdir] = idx
 
     # Load hparams
     target_names = [c[0] for c in sorted(mapping_dict.items(), key=lambda x: x[1])]
-    top_k = cfg.evaluate.topk
-    image_mean = [x / 255 for x in cfg.dataset.img_norm_cfg.mean]
-    img_std = [x / 255 for x in cfg.dataset.img_norm_cfg.std]
-    batch_size = cfg.evaluate.batch_size
-
-    trt_infer = ClassificationInferencer(cfg.evaluate.trt_engine, data_format="channels_first", batch_size=batch_size)
+    # sklearn only support one topk value
+    top_k = cfg.model.head.topk[0]
+    image_mean = list(cfg.dataset.augmentation.mean)
+    img_std = list(cfg.dataset.augmentation.std)
+    batch_size = cfg.dataset.batch_size
+    trt_infer = ClassificationInferencer(cfg.evaluate.trt_engine, data_format="channel_first", batch_size=batch_size)
 
     dl = ClassificationLoader(
-        trt_infer._input_shape,
-        [cfg.dataset.data.test.data_prefix],
+        trt_infer.input_tensors[0].shape,
+        [cfg.dataset.test_dataset.images_dir],
         mapping_dict,
         data_format="channels_first",
         mode="torch",
-        batch_size=cfg.evaluate.batch_size,
+        batch_size=batch_size,
         image_mean=image_mean,
         image_std=img_std,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     gt_labels = []
-    pred_labels = []
+    pred_labels = np.array([])
     for imgs, labels in tqdm(dl, total=len(dl), desc="Producing predictions"):
         gt_labels.extend(labels)
-        y_pred = trt_infer.infer(imgs)
-        pred_labels.extend(y_pred)
-
+        pred_labels = np.append(pred_labels, trt_infer.infer(imgs))
+    pred_labels = pred_labels.reshape(len(dl), -1)
     # Check output classes
     output_num_classes = pred_labels[0].shape[0]
     if len(mapping_dict) != output_num_classes:
@@ -119,13 +113,7 @@ def main(cfg: ExperimentConfig) -> None:
 
     # Store evaluation results into JSON
     eval_results = {"top_k_accuracy": scores}
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_evaluate")
-    os.makedirs(results_dir, exist_ok=True)
-
-    with open(os.path.join(results_dir, "results.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(cfg.results_dir, "results.json"), "w", encoding="utf-8") as f:
         json.dump(eval_results, f)
     logging.info("Finished evaluation.")
 

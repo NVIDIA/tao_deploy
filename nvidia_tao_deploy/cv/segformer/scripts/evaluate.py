@@ -14,19 +14,19 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import logging
 import json
+import tensorrt as trt
 from tqdm.auto import tqdm
 from collections import defaultdict
+import cv2
+import numpy as np
+
+from nvidia_tao_core.config.segformer.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.segformer.inferencer import SegformerInferencer
 from nvidia_tao_deploy.cv.segformer.dataloader import SegformerLoader
-from nvidia_tao_deploy.cv.segformer.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.unet.proto.utils import TargetClass, get_num_unique_train_ids
 from nvidia_tao_deploy.metrics.semantic_segmentation_metric import SemSegMetric
@@ -91,42 +91,34 @@ def build_target_class_list(dataset):
     config_path=os.path.join(spec_root, "specs"),
     config_name="infer", schema=ExperimentConfig
 )
-@monitor_status(name='segformer', mode='evaluation')
+@monitor_status(name='segformer', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Segformer TRT Evaluation."""
-    trt_infer = SegformerInferencer(cfg.evaluate.trt_engine, batch_size=cfg.dataset.batch_size)
-    c, h, w = trt_infer._input_shape
+    trt_infer = SegformerInferencer(cfg.evaluate.trt_engine, batch_size=cfg.dataset.segment.batch_size)
+    c, h, w = trt_infer.input_tensors[0].shape
 
     # Calculate number of classes from the spec file
-    target_classes = build_target_class_list(cfg.dataset)
+    target_classes = build_target_class_list(cfg.dataset.segment)
     label_id_train_id_mapping = get_label_train_dic(target_classes)
     num_classes = get_num_unique_train_ids(target_classes)
 
     dl = SegformerLoader(
         shape=(c, h, w),
-        image_data_source=[cfg.dataset.test_dataset.img_dir],
-        label_data_source=[cfg.dataset.test_dataset.ann_dir],
+        image_data_source=[os.path.join(cfg.dataset.segment.root_dir, "images", cfg.dataset.segment.validation_split)],
+        label_data_source=[os.path.join(cfg.dataset.segment.root_dir, "masks", cfg.dataset.segment.validation_split)],
         num_classes=num_classes,
-        dtype=trt_infer.inputs[0].host.dtype,
-        batch_size=cfg.dataset.batch_size,
+        target_classes=target_classes,
+        label_transform=cfg.dataset.segment.label_transform,
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
+        batch_size=cfg.dataset.segment.batch_size,
         is_inference=False,
-        input_image_type=cfg.dataset.input_type,
-        keep_ratio=cfg.dataset.test_dataset.pipeline.augmentation_config.resize.keep_ratio,
-        pad_val=cfg.dataset.test_dataset.pipeline.Pad['pad_val'],
-        image_mean=cfg.dataset.img_norm_cfg.mean,
-        image_std=cfg.dataset.img_norm_cfg.std)
-
-    # Create results directories
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_evaluate")
-
-    os.makedirs(results_dir, exist_ok=True)
+        keep_ratio=False,
+        image_mean=np.array(cfg.dataset.segment.augmentation.mean) * 255,
+        image_std=np.array(cfg.dataset.segment.augmentation.std) * 255)
 
     # Load label mapping
     label_mapping = defaultdict(list)
-    for p in cfg.dataset.palette:
+    for p in cfg.dataset.segment.palette:
         label_mapping[p['label_id']].append(p['seg_class'])
 
     eval_metric = SemSegMetric(num_classes=num_classes,
@@ -138,11 +130,15 @@ def main(cfg: ExperimentConfig) -> None:
     for imgs, labels in tqdm(dl, total=len(dl), desc="Producing predictions"):
         gt_labels.extend(labels)
         y_pred = trt_infer.infer(imgs)
+        # get the argmax of the output
+        y_pred = y_pred.argmax(axis=1)
+        # opencv resize to labels shape
+        y_pred = [cv2.resize(np.uint8(y), (labels[0].shape[1], labels[0].shape[0]), interpolation=cv2.INTER_NEAREST) for y in y_pred]
         pred_labels.extend(y_pred)
 
     metrices = eval_metric.get_evaluation_metrics(gt_labels, pred_labels)
 
-    with open(os.path.join(results_dir, "results.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(cfg.results_dir, "results.json"), "w", encoding="utf-8") as f:
         json.dump(str(metrices["results_dic"]), f)
     logging.info("Finished evaluation.")
 

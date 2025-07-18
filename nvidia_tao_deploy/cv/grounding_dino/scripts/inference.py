@@ -18,12 +18,14 @@ import os
 import logging
 import numpy as np
 from PIL import Image
+import tensorrt as trt
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 
+from nvidia_tao_core.config.grounding_dino.default_config import ExperimentConfig
+
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.grounding_dino.inferencer import GDINOInferencer
-from nvidia_tao_deploy.cv.grounding_dino.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.grounding_dino.utils import post_process, tokenize_captions
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
@@ -52,10 +54,10 @@ def main(cfg: ExperimentConfig) -> None:
                                 batch_size=cfg.dataset.batch_size,
                                 num_classes=max_text_len)
 
-    c, h, w = trt_infer._input_shape[0]
+    c, h, w = trt_infer.input_tensors[0].shape
     batcher = ImageBatcher(list(cfg.dataset.infer_data_sources.image_dir),
                            (cfg.dataset.batch_size, c, h, w),
-                           trt_infer.inputs[0].host.dtype,
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="DDETR")
 
     cat_list = list(cfg.dataset.infer_data_sources["captions"])
@@ -66,13 +68,8 @@ def main(cfg: ExperimentConfig) -> None:
     input_ids, attention_mask, position_ids, token_type_ids, text_self_attention_masks, pos_map = tokenize_captions(tokenizer, cat_list, caption, max_text_len)
 
     # Create results directories
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_inference")
-    os.makedirs(results_dir, exist_ok=True)
-    output_annotate_root = os.path.join(results_dir, "images_annotated")
-    output_label_root = os.path.join(results_dir, "labels")
+    output_annotate_root = os.path.join(cfg.results_dir, "images_annotated")
+    output_label_root = os.path.join(cfg.results_dir, "labels")
 
     os.makedirs(output_annotate_root, exist_ok=True)
     os.makedirs(output_label_root, exist_ok=True)

@@ -1,0 +1,7 @@
+gen_trt_engine:
+  onnx_file: "/media/data/zhimengf/tao-experiments/pointpillars/retrain/checkpoint_epoch_80.onnx"
+  save_engine: "/media/data/zhimengf/tao-experiments/pointpillars/retrain/checkpoint_epoch_80.onnx.fp16"
+  data_type: "fp16"
+  batch_size: 1
+  workspace_size: 1000
+

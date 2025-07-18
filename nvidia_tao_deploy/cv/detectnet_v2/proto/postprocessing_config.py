@@ -14,10 +14,6 @@
 
 """PostProcessingConfig class that holds postprocessing parameters."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import six
 from nvidia_tao_deploy.cv.detectnet_v2.proto.clustering_config import build_clustering_config
 from nvidia_tao_deploy.cv.detectnet_v2.proto.clustering_config import build_clustering_proto

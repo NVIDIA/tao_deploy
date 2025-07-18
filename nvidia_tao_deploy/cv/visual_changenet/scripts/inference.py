@@ -18,15 +18,18 @@
 import os
 import logging
 import numpy as np
+import tensorrt as trt
 from tqdm import tqdm
+
+from nvidia_tao_core.config.visual_changenet.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.visual_changenet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.inferencer import ChangeNetInferencer as ChangeNetSegmentInferencer
 from nvidia_tao_deploy.cv.visual_changenet.classification.inferencer import ChangeNetInferencer as ChangeNetClassifyInferencer
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.dataloader import ChangeNetDataLoader as ChangeNetSegmentDataLoader
 from nvidia_tao_deploy.cv.optical_inspection.dataloader import OpticalInspectionDataLoader as ChangeNetClassifyDataLoader
+from nvidia_tao_deploy.cv.visual_changenet.dataloader import MultiGoldenDataLoader
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.utils import get_color_mapping, visualize_infer_output
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -49,13 +52,6 @@ def main(cfg: ExperimentConfig) -> None:
     engine_file = cfg.inference.trt_engine
     batch_size = cfg.inference.batch_size
 
-    # Create results directories
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_inference")
-    os.makedirs(results_dir, exist_ok=True)
-
     task = cfg.task
     if task == 'segment':
         dataset_config = cfg.dataset.segment
@@ -70,13 +66,15 @@ def main(cfg: ExperimentConfig) -> None:
         logger.info("Instantiating the Visual ChangeNet Segmentation dataloader.")
         infer_dataloader = ChangeNetSegmentDataLoader(
             dataset_config=dataset_config,
-            dtype=changenet_inferencer.inputs[0].host.dtype,
+            dtype=trt.nptype(changenet_inferencer.input_tensors[0].tensor_dtype),
             mode='predict',
             split=dataset_config.predict_split
         )
 
     elif task == 'classify':
         dataset_config = cfg.dataset.classify
+        num_golden = dataset_config.num_golden
+
         logger.info("Instantiate the Visual ChangeNet Classification inference.")
         changenet_inferencer = ChangeNetClassifyInferencer(
             engine_path=engine_file,
@@ -85,15 +83,22 @@ def main(cfg: ExperimentConfig) -> None:
         )
 
         logger.info("Instantiating the Visual ChangeNet Classification dataloader.")
-        infer_dataloader = ChangeNetClassifyDataLoader(
-            csv_file=dataset_config.infer_dataset.csv_path,
-            input_data_path=dataset_config.infer_dataset.images_dir,
-            train=False,
-            data_config=dataset_config,
-            dtype=changenet_inferencer.inputs[0].host.dtype,
-            split='inference',
-            batch_size=batch_size
-        )
+        dataloader_kwargs = {
+            'csv_file': dataset_config.infer_dataset.csv_path,
+            'input_data_path': dataset_config.infer_dataset.images_dir,
+            'train': False,
+            'data_config': dataset_config,
+            'dtype': trt.nptype(changenet_inferencer.input_tensors[0].tensor_dtype),
+            'split': 'inference',
+            'batch_size': batch_size
+        }
+        if num_golden == 1:
+            dataloader_class = ChangeNetClassifyDataLoader
+        else:
+            dataloader_class = MultiGoldenDataLoader
+            dataloader_kwargs['num_golden'] = num_golden
+
+        infer_dataloader = dataloader_class(**dataloader_kwargs)
 
     else:
         raise NotImplementedError('Only tasks supported by Visual ChangeNet are: "segment" and "classify"')
@@ -122,7 +127,7 @@ def main(cfg: ExperimentConfig) -> None:
             # Save output visualisation
             for img1, img2, result, img_path in zip(img_1, img_2, results, image_paths):
                 visualize_infer_output(img_path, result, img1, img2, dataset_config.num_classes,
-                                       color_map, results_dir, mode='predict')
+                                       color_map, cfg.results_dir, mode='predict')
 
     elif task == 'classify':
         inference_score = []
@@ -138,7 +143,7 @@ def main(cfg: ExperimentConfig) -> None:
         logger.info("Total number of inference outputs: {}".format(len(inference_score)))
         infer_dataloader.merged["output_score"] = inference_score[:len(infer_dataloader.merged)]
         infer_dataloader.merged.to_csv(
-            os.path.join(results_dir, "inference.csv"),
+            os.path.join(cfg.results_dir, "inference.csv"),
             header=True,
             index=False
         )

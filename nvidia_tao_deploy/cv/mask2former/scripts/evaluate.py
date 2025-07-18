@@ -17,7 +17,10 @@
 import os
 import logging
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
+
+from nvidia_tao_core.config.mask2former.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
@@ -25,7 +28,6 @@ from nvidia_tao_deploy.dataloader.ade import ADELoader
 from nvidia_tao_deploy.dataloader.coco_panoptic import COCOPanopticLoader
 from nvidia_tao_deploy.cv.mask2former.dataloader import Mask2formerCOCOLoader
 from nvidia_tao_deploy.cv.mask2former.inferencer import Mask2formerInferencer
-from nvidia_tao_deploy.cv.mask2former.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.mask2former.metrics import total_intersect_over_union
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -38,7 +40,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="infer", schema=ExperimentConfig
 )
-@monitor_status(name='mask2former', mode='trt_evaluate')
+@monitor_status(name='mask2former', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Mask2former TRT evaluation."""
     if not os.path.exists(cfg.evaluate.trt_engine):
@@ -48,7 +50,7 @@ def main(cfg: ExperimentConfig) -> None:
         batch_size=cfg.dataset.val.batch_size)
 
     assert len(trt_infer.outputs) == 1, "[Experimental] Only support engines exported in the `semantic` mode."
-    shape = [trt_infer.max_batch_size] + list(trt_infer._input_shape)
+    shape = trt_infer.input_tensors[0].tensor_shape
 
     if cfg.dataset.val.type == 'ade':
         dl = ADELoader(
@@ -56,7 +58,7 @@ def main(cfg: ExperimentConfig) -> None:
             batch_size=trt_infer.max_batch_size,
             data_format="channels_first",
             shape=shape,
-            dtype=trt_infer.inputs[0].host.dtype,
+            dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
             root_dir=cfg.dataset.val.root_dir,
             eval_samples=None)
     elif cfg.dataset.val.type == 'coco_panoptic':
@@ -65,7 +67,7 @@ def main(cfg: ExperimentConfig) -> None:
             cfg.dataset.val.img_dir,
             cfg.dataset.val.panoptic_dir,
             shape,
-            dtype=trt_infer.inputs[0].host.dtype,
+            dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
             contiguous_id=False,
             batch_size=trt_infer.max_batch_size,
             data_format='channels_first',
@@ -74,7 +76,7 @@ def main(cfg: ExperimentConfig) -> None:
         dl = Mask2formerCOCOLoader(
             cfg.dataset.val.instance_json,
             shape,
-            dtype=trt_infer.inputs[0].host.dtype,
+            dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
             batch_size=trt_infer.max_batch_size,
             data_format='channels_first',
             image_dir=cfg.dataset.val.img_dir,

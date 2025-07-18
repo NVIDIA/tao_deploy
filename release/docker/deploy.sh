@@ -6,10 +6,10 @@ set -eo pipefail
 ENV_SET=$NV_TAO_DEPLOY_TOP/scripts/envsetup.sh
 
 REGISTRY="nvcr.io"
-TENSORRT_VERSION="8.5.3.1"
-CUDA_VERSION=12.0
-TAO_VERSION="5.2.0"
-REPOSITORY="nvidia/tao/tao-toolkit-deploy"
+TENSORRT_VERSION="10.8.0.40"
+CUDA_VERSION=12.8.0.038
+TAO_VERSION="5.5.0"
+REPOSITORY="nvstaging/tao/tao-toolkit-deploy"
 BUILD_ID="01"
 tag="v${TAO_VERSION}-trt${TENSORRT_VERSION}-${BUILD_ID}-dev-cuda${CUDA_VERSION}"
 
@@ -17,11 +17,17 @@ tag="v${TAO_VERSION}-trt${TENSORRT_VERSION}-${BUILD_ID}-dev-cuda${CUDA_VERSION}"
 source $ENV_SET
 
 # Build parameters.
+SKIP_SUBMODULE_INIT="1"
 BUILD_DOCKER="0"
 BUILD_WHEEL="0"
 PUSH_DOCKER="0"
 FORCE="0"
 
+# Required for tao-core and tao-converter since they are submodules.
+if [ $SKIP_SUBMODULE_INIT = "0" ]; then
+    echo "Updating submodules ..."
+    git submodule update --init --recursive
+fi
 
 # Parse command line.
 while [[ $# -gt 0 ]]

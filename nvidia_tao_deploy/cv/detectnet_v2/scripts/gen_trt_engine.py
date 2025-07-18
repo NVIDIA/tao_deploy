@@ -35,7 +35,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='detectnet_v2', mode='gen_trt_engine')
+@monitor_status(name='detectnet_v2', mode='gen_trt_engine', hydra=False)
 def main(args):
     """DetectNetv2 TRT convert."""
     # decrypt etlt
@@ -70,6 +70,9 @@ def main(args):
                                          strict_type_constraints=args.strict_type_constraints,
                                          force_ptq=args.force_ptq)
         builder.create_network(tmp_onnx_file, file_format)
+        # TODO @vpraveen: add constraints on the calibration batch size
+        # if input shapes are dynamic. Currently, over CLI you have to force the
+        # batch size to be min, opt or max batch size.
         builder.create_engine(
             output_engine_path,
             args.data_type,
@@ -79,8 +82,6 @@ def main(args):
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size,
             calib_json_file=args.cal_json_file)
-
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

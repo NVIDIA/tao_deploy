@@ -19,8 +19,6 @@ from nvidia_tao_deploy.cv.common.entrypoint.entrypoint_proto import launch_job
 import nvidia_tao_deploy.cv.lprnet.scripts
 
 
-# TODO @seanf: how to get subtasks for proto?
-
 def main():
     """Function to launch the job."""
     launch_job(nvidia_tao_deploy.cv.lprnet.scripts, "lprnet", sys.argv[1:])

@@ -14,10 +14,6 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 
@@ -26,6 +22,7 @@ import pandas as pd
 import json
 import numpy as np
 
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.classification_tf1.inferencer import ClassificationInferencer
@@ -40,7 +37,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='classification_tf1', mode='inference')
+@monitor_status(name='classification_tf1', mode='inference', hydra=False)
 def main(args):
     """Classification TRT inference."""
     # Load from proto-based spec file
@@ -63,7 +60,7 @@ def main(args):
     else:
         image_mean = [103.939, 116.779, 123.68]
 
-    data_format = "channels_first"  # TF1 is always channels first
+    data_format = "channel_first"  # TF1 is always channels first
 
     batch_size = es.eval_config.batch_size if args.batch_size is None else args.batch_size
     image_dirs = args.image_dir
@@ -91,17 +88,17 @@ def main(args):
         batch_size = 1
 
     dl = ClassificationLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         [image_dirs],
         mapping_dict,
         is_inference=True,
-        data_format=data_format,
+        data_format="channels_first",
         interpolation_method=interpolation_method,
         mode=mode,
         crop=crop,
         batch_size=batch_size,
         image_mean=image_mean,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     if args.results_dir is None:
         results_dir = os.path.dirname(args.model_path)

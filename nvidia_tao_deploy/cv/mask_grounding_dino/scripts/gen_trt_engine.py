@@ -16,13 +16,14 @@
 
 import logging
 import os
-import tempfile
+
+from nvidia_tao_core.config.mask_grounding_dino.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 
+from nvidia_tao_deploy.cv.common.initialize_experiments import initialize_gen_trt_engine_experiment
 from nvidia_tao_deploy.cv.grounding_dino.engine_builder import GDINODetEngineBuilder
-from nvidia_tao_deploy.cv.mask_grounding_dino.hydra_config.default_config import ExperimentConfig
 
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -38,60 +39,22 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @monitor_status(name='mask_grounding_dino', mode='gen_trt_engine')
 def main(cfg: ExperimentConfig) -> None:
     """Convert onnx model to TRT engine."""
-    if cfg.gen_trt_engine.results_dir:
-        results_dir = cfg.gen_trt_engine.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "gen_trt_engine")
-    os.makedirs(results_dir, exist_ok=True)
-
     # decrypt etlt
     tmp_onnx_file = cfg.gen_trt_engine.onnx_file
 
-    engine_file = cfg.gen_trt_engine.trt_engine
+    engine_builder_kwargs, create_engine_kwargs = initialize_gen_trt_engine_experiment(cfg)
 
-    data_type = cfg.gen_trt_engine.tensorrt.data_type
     workspace_size = cfg.gen_trt_engine.tensorrt.workspace_size
-    min_batch_size = cfg.gen_trt_engine.tensorrt.min_batch_size
-    opt_batch_size = cfg.gen_trt_engine.tensorrt.opt_batch_size
-    max_batch_size = cfg.gen_trt_engine.tensorrt.max_batch_size
-    batch_size = cfg.gen_trt_engine.batch_size
-    num_channels = cfg.gen_trt_engine.input_channel
-    input_width = cfg.gen_trt_engine.input_width
-    input_height = cfg.gen_trt_engine.input_height
     max_text_len = cfg.model.max_text_len
     img_std = cfg.dataset.augmentation.input_std
 
-    if batch_size is None or batch_size == -1:
-        input_batch_size = 1
-        is_dynamic = True
-    else:
-        input_batch_size = batch_size
-        is_dynamic = False
+    builder = GDINODetEngineBuilder(**engine_builder_kwargs,
+                                    workspace=workspace_size // 1024,  # DINO config is not in GB
+                                    max_text_len=max_text_len,
+                                    img_std=img_std)
 
-    if engine_file is not None:
-        if engine_file is None:
-            engine_handle, temp_engine_path = tempfile.mkstemp()
-            os.close(engine_handle)
-            output_engine_path = temp_engine_path
-        else:
-            output_engine_path = engine_file
-
-        builder = GDINODetEngineBuilder(workspace=workspace_size // 1024,  # DINO config is not in GB
-                                        input_dims=(input_batch_size, num_channels, input_height, input_width),
-                                        is_dynamic=is_dynamic,
-                                        max_text_len=max_text_len,
-                                        min_batch_size=min_batch_size,
-                                        opt_batch_size=opt_batch_size,
-                                        max_batch_size=max_batch_size,
-                                        img_std=img_std)
-
-        builder.create_network(tmp_onnx_file, "onnx")
-        builder.create_engine(
-            output_engine_path,
-            data_type
-        )
-
-    logging.info("The TensorRT engine was saved at: %s.", output_engine_path)
+    builder.create_network(tmp_onnx_file, "onnx")
+    builder.create_engine(**create_engine_kwargs)
 
 
 if __name__ == '__main__':

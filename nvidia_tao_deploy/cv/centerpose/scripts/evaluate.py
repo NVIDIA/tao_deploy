@@ -16,14 +16,15 @@
 
 import os
 import logging
+import tensorrt as trt
 from tqdm.auto import tqdm
 
+from nvidia_tao_core.config.centerpose.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.centerpose.dataloader import CPPredictDataset
 from nvidia_tao_deploy.cv.centerpose.inferencer import CenterPoseInferencer
 from nvidia_tao_deploy.cv.centerpose.utils import transform_outputs, merge_outputs, PnPProcess
-from nvidia_tao_deploy.cv.centerpose.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.centerpose.centerpose_evaluator import Evaluator
 
 
@@ -37,7 +38,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="evaluate", schema=ExperimentConfig
 )
-@monitor_status(name='centerpose', mode='evaluation')
+@monitor_status(name='centerpose', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """CenterPose TRT evaluation."""
     if not os.path.exists(cfg.evaluate.trt_engine):
@@ -46,10 +47,10 @@ def main(cfg: ExperimentConfig) -> None:
     trt_infer = CenterPoseInferencer(cfg.evaluate.trt_engine,
                                      batch_size=cfg.dataset.batch_size)
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     batcher = CPPredictDataset(cfg.dataset, cfg.dataset.test_data, (cfg.dataset.batch_size, c, h, w),
-                               trt_infer.inputs[0].host.dtype, evaluate=True)
+                               trt.nptype(trt_infer.input_tensors[0].tensor_dtype), evaluate=True)
 
     pnp_solver = PnPProcess(cfg.evaluate, evaluate=True)
 
@@ -80,14 +81,8 @@ def main(cfg: ExperimentConfig) -> None:
         # Launch the evaluation
         cp_evaluator.evaluate(final_output, json_paths)
 
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_evaluate")
-    os.makedirs(results_dir, exist_ok=True)
-
     cp_evaluator.finalize()
-    cp_evaluator.write_report(results_dir)
+    cp_evaluator.write_report(cfg.results_dir)
 
     logging.info("Finished evaluation.")
 

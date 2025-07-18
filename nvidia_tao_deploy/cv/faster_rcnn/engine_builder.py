@@ -18,32 +18,8 @@ import logging
 import os
 import random
 from six.moves import xrange
-import sys
-import traceback
 
 from tqdm import tqdm
-
-try:
-    from uff.model.uff_pb2 import MetaGraph
-except ImportError:
-    print("Loading uff directly from the package source code")
-    # @scha: To disable tensorflow import issue
-    import importlib
-    import types
-    import pkgutil
-
-    package = pkgutil.get_loader("uff")
-    # Returns __init__.py path
-    src_code = package.get_filename().replace('__init__.py', 'model/uff_pb2.py')
-
-    loader = importlib.machinery.SourceFileLoader('helper', src_code)
-    helper = types.ModuleType(loader.name)
-    loader.exec_module(helper)
-    MetaGraph = helper.MetaGraph
-
-import numpy as np
-import onnx
-import tensorrt as trt
 
 from nvidia_tao_deploy.engine.builder import EngineBuilder
 from nvidia_tao_deploy.engine.tensorfile import TensorFile
@@ -77,26 +53,6 @@ class FRCNNEngineBuilder(EngineBuilder):
         self._output_node_names = ["NMS"]
         self._input_node_names = ["input_image"]
 
-    def get_input_dims(self, model_path):
-        """Get input dimension of UFF model."""
-        metagraph = MetaGraph()
-        with open(model_path, "rb") as f:
-            metagraph.ParseFromString(f.read())
-        for node in metagraph.graphs[0].nodes:
-            if node.operation == "Input":
-                return np.array(node.fields['shape'].i_list.val)[1:]
-        raise ValueError("Input dimension is not found in the UFF metagraph.")
-
-    def get_onnx_input_dims(self, model_path):
-        """Get input dimension of ONNX model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        logger.info('ONNX model inputs: ')
-        for i, inputs in enumerate(onnx_inputs):
-            logger.info('Input %s: %s.', i, inputs.name)
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim])
-            return [i.dim_value for i in inputs.type.tensor_type.shape.dim][:]
-
     def create_network(self, model_path, file_format="uff"):
         """Parse the ONNX graph and create the corresponding TensorRT network definition.
 
@@ -104,74 +60,9 @@ class FRCNNEngineBuilder(EngineBuilder):
             model_path: The path to the UFF/ONNX graph to load.
         """
         if file_format == "uff":
-            logger.info("Parsing UFF model")
-            self.network = self.builder.create_network()
-            self.parser = trt.UffParser()
-
-            self.set_input_output_node_names()
-
-            in_tensor_name = self._input_node_names[0]
-
-            self._input_dims = self.get_input_dims(model_path)
-            input_dict = {in_tensor_name: self._input_dims}
-            for key, value in input_dict.items():
-                if self._data_format == "channels_first":
-                    self.parser.register_input(key, value, trt.UffInputOrder(0))
-                else:
-                    self.parser.register_input(key, value, trt.UffInputOrder(1))
-            for name in self._output_node_names:
-                self.parser.register_output(name)
-            self.builder.max_batch_size = self.max_batch_size
-            try:
-                assert self.parser.parse(model_path, self.network, trt.DataType.FLOAT)
-            except AssertionError as e:
-                logger.error("Failed to parse UFF File")
-                _, _, tb = sys.exc_info()
-                traceback.print_tb(tb)  # Fixed format
-                tb_info = traceback.extract_tb(tb)
-                _, line, _, text = tb_info[-1]
-                raise AssertionError(
-                    f"UFF parsing failed on line {line} in statement {text}"
-                ) from e
+            self.parse_uff_model(model_path)
         elif file_format == "onnx":
-            logger.info("Parsing ONNX model")
-            self._input_dims = self.get_onnx_input_dims(model_path)
-            self.batch_size = self._input_dims[0]
-            self._input_dims = self._input_dims[1:]
-
-            network_flags = (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
-            self.network = self.builder.create_network(network_flags)
-            self.parser = trt.OnnxParser(self.network, self.trt_logger)
-            model_path = os.path.realpath(model_path)
-            if not self.parser.parse_from_file(model_path):
-                logger.error("Failed to load ONNX file: %s", model_path)
-                for error in range(self.parser.num_errors):
-                    logger.error(self.parser.get_error(error))
-                sys.exit(1)
-            inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-            outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
-            logger.info("Network Description")
-            for input in inputs: # noqa pylint: disable=W0622
-                logger.info("Input '%s' with shape %s and dtype %s", input.name, input.shape, input.dtype)
-            for output in outputs:
-                logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
-            if self.batch_size <= 0:  # dynamic batch size
-                logger.info("dynamic batch size handling")
-                opt_profile = self.builder.create_optimization_profile()
-                model_input = self.network.get_input(0)
-                input_shape = model_input.shape
-                input_name = model_input.name
-                real_shape_min = (self.min_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_opt = (self.opt_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_max = (self.max_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                opt_profile.set_shape(input=input_name,
-                                      min=real_shape_min,
-                                      opt=real_shape_opt,
-                                      max=real_shape_max)
-                self.config.add_optimization_profile(opt_profile)
+            super().create_network(model_path, file_format)
         else:
             raise NotImplementedError(f"Model format {file_format} for FasterRCNN is not supported")
 
@@ -206,7 +97,7 @@ class FRCNNEngineBuilder(EngineBuilder):
         if not os.path.exists(calib_data_file):
             self.generate_tensor_file(calib_data_file,
                                       calib_input,
-                                      self._input_dims,
+                                      list(self._input_dims.values())[0],
                                       n_batches=n_batches,
                                       batch_size=calib_batch_size,
                                       image_mean=image_mean)

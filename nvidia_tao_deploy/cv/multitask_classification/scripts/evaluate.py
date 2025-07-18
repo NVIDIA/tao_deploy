@@ -14,10 +14,6 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 
@@ -26,6 +22,7 @@ import json
 import numpy as np
 
 from collections import defaultdict
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -40,7 +37,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='multitask_classification', mode='evaluation')
+@monitor_status(name='multitask_classification', mode='evaluate', hydra=False)
 def main(args):
     """Multitask Classification TRT evaluation."""
     es = load_proto(args.experiment_spec)
@@ -57,19 +54,19 @@ def main(args):
 
     trt_infer = MClassificationInferencer(args.model_path, batch_size=batch_size)
 
-    if trt_infer._input_shape[0] in [1, 3]:
+    if trt_infer.input_tensors[0].shape[0] in [1, 3]:
         data_format = "channels_first"
     else:
         data_format = "channels_last"
 
     dl = MClassificationLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         [image_dirs],
         es.dataset_config.val_csv_path,
         data_format=data_format,
         interpolation_method=interpolation_method,
         batch_size=batch_size,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     tp = defaultdict(list)
     for imgs, labels in tqdm(dl, total=len(dl), desc="Producing predictions"):

@@ -14,10 +14,6 @@
 
 """Utilities file containing helper functions to post process raw predictions."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import numpy as np
 from collections import namedtuple

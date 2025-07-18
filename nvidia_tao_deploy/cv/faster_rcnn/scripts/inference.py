@@ -14,14 +14,11 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 from PIL import Image
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 import logging
@@ -38,7 +35,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='faster_rcnn', mode='inference')
+@monitor_status(name='faster_rcnn', mode='inference', hydra=False)
 def main(args):
     """FRCNN TRT inference."""
     # Load from proto-based spec file
@@ -50,7 +47,7 @@ def main(args):
     if batch_size <= 0:
         raise ValueError(f"Inference batch size should be >=1, got {batch_size}, please check inference_config.batch_size")
     trt_infer = FRCNNInferencer(args.model_path, batch_size=batch_size)
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
     img_mean = es.model_config.input_image_config.image_channel_mean
     if c == 3:
         if img_mean:
@@ -81,7 +78,7 @@ def main(args):
         batch_size=batch_size,
         is_inference=True,
         image_mean=img_mean,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     inv_classes = {v: k for k, v in dl.classes.items()}
     inv_classes[-1] = "background"  # Dummy class to filter backgrounds

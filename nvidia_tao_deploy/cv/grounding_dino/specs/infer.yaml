@@ -1,20 +1,16 @@
-results_dir: /home/scratch.p3/sean/groundingdino/tao_integration/
 dataset:
   infer_data_sources:
     image_dir: 
-      # - /home/projects2_metropolis/datasets/kpi_datasets/People/C0042_4.mp4/images_final_hres/
-      - /home/scratch.p3/sean/temp/
-    captions: ["dog", "cat"]
+     - /data/HardHatWorkers/raw/valid/
+    captions: ["head", "helmet", "person"]
   batch_size: 4
   workers: 8
 inference:
-  trt_engine: /home/scratch.p3/sean/groundingdino/tao_integration/swint2.engine
-  conf_threshold: 0.3
-  input_width: 960
-  input_height: 544
+  conf_threshold: 0.5
   color_map:
-    "dog": green
-    "cat": red
+    head: green
+    helmet: red
+    person: blue
 model:
   backbone: swin_tiny_224_1k
   num_feature_levels: 4
