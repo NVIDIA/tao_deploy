@@ -1,0 +1,7 @@
+wget
+curl
+unzip
+libsm6
+libxext6
+gnupg
+nginx

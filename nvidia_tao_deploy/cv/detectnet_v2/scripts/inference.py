@@ -14,14 +14,11 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 from PIL import Image
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 import logging
 
@@ -34,7 +31,7 @@ from nvidia_tao_deploy.cv.detectnet_v2.inferencer import DetectNetInferencer  # 
 from nvidia_tao_deploy.cv.detectnet_v2.postprocessor import BboxHandler  # noqa: E402
 
 
-@monitor_status(name='detectnet_v2', mode='inference')
+@monitor_status(name='detectnet_v2', mode='inference', hydra=False)
 def main(args):
     """DetectNetv2 TRT inference."""
     inferencer_spec = load_proto(args.experiment_spec, "inference")
@@ -54,7 +51,7 @@ def main(args):
                         "%d to engine's batch size %d", batch_size, trt_infer.max_batch_size)
         batch_size = trt_infer.max_batch_size
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     dl = DetectNetKITTILoader(
         shape=(c, h, w),
@@ -65,15 +62,16 @@ def main(args):
         batch_size=batch_size,
         is_inference=True,
         image_mean=None,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
-    bboxer = BboxHandler(batch_size=batch_size,
-                         frame_height=h,
-                         frame_width=w,
-                         target_classes=target_classes,
-                         postproc_classes=target_classes,
-                         classwise_cluster_params=inferencer_spec.bbox_handler_config.classwise_bbox_handler_config,
-                         )
+    bboxer = BboxHandler(
+        batch_size=batch_size,
+        frame_height=h,
+        frame_width=w,
+        target_classes=target_classes,
+        postproc_classes=target_classes,
+        classwise_cluster_params=inferencer_spec.bbox_handler_config.classwise_bbox_handler_config,
+    )
 
     # Override class mapping with the class order specified by target_classes
     dl.classes = {c: i + 1 for i, c in enumerate(target_classes)}

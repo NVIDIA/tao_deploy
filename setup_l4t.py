@@ -39,8 +39,8 @@ setuptools_packages = []
 for package_name in PACKAGE_LIST:
     setuptools_packages.extend(utils.find_packages(package_name))
 
-if(os.path.exists("pytransform_vax_001219")):
-    pyarmor_packages = ["pytransform_vax_001219"]
+if os.path.exists("pyarmor_runtime_001219"):
+    pyarmor_packages = ["pyarmor_runtime_001219"]
     setuptools_packages += pyarmor_packages
 
 __platform_machine__ = platform.machine()
@@ -97,12 +97,13 @@ setuptools.setup(
             'lprnet=nvidia_tao_deploy.cv.lprnet.entrypoint.lprnet:main',
             'mask_rcnn=nvidia_tao_deploy.cv.mask_rcnn.entrypoint.mask_rcnn:main',
             'mask2former=nvidia_tao_deploy.cv.mask2former.entrypoint.mask2former:main',
-            'ml_recog=nvidia_tao_deploy.cv.metric_learning_recognition.entrypoint.metric_learning_recognition:main',
+            'ml_recog=nvidia_tao_deploy.cv.ml_recog.entrypoint.ml_recog:main',
             'multitask_classification=nvidia_tao_deploy.cv.multitask_classification.entrypoint.multitask_classification:main',
             'ocdnet=nvidia_tao_deploy.cv.ocdnet.entrypoint.ocdnet:main',
             'ocrnet=nvidia_tao_deploy.cv.ocrnet.entrypoint.ocrnet:main',
             'optical_inspection=nvidia_tao_deploy.cv.optical_inspection.entrypoint.optical_inspection:main',
             'retinanet=nvidia_tao_deploy.cv.retinanet.entrypoint.retinanet:main',
+            'rtdetr=nvidia_tao_deploy.cv.rtdetr.entrypoint.rtdetr:main',
             'ssd=nvidia_tao_deploy.cv.ssd.entrypoint.ssd:main',
             'segformer=nvidia_tao_deploy.cv.segformer.entrypoint.segformer:main',
             'unet=nvidia_tao_deploy.cv.unet.entrypoint.unet:main',
@@ -110,6 +111,8 @@ setuptools.setup(
             'yolo_v3=nvidia_tao_deploy.cv.yolo_v3.entrypoint.yolo_v3:main',
             'yolo_v4=nvidia_tao_deploy.cv.yolo_v4.entrypoint.yolo_v4:main',
             'yolo_v4_tiny=nvidia_tao_deploy.cv.yolo_v4.entrypoint.yolo_v4:main',
+            'nvdinov2=nvidia_tao_deploy.cv.nvdinov2.entrypoint.nvdinov2:main',
+            'mae=nvidia_tao_deploy.cv.mae.entrypoint.mae:main'
         ]
     }
 )

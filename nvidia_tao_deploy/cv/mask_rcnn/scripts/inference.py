@@ -14,16 +14,13 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 from PIL import Image
 import logging
 import json
 
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -75,7 +72,7 @@ def get_label_dict(label_txt):
         return result
 
 
-@monitor_status(name='mask_rcnn', mode='inference')
+@monitor_status(name='mask_rcnn', mode='inference', hydra=False)
 def main(args):
     """MRCNN TRT inference."""
     # Load from proto-based spec file
@@ -89,10 +86,9 @@ def main(args):
                                 mask_size=mask_size)
 
     # Inference may not have labels. Hence, use image batcher
-    batch_size = trt_infer.max_batch_size
     batcher = ImageBatcher(args.image_dir,
-                           (batch_size,) + trt_infer._input_shape,
-                           trt_infer.inputs[0].host.dtype,
+                           trt_infer.input_tensors[0].tensor_shape,
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="MRCNN")
 
     # Create results directories

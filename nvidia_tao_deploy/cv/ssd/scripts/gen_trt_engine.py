@@ -30,7 +30,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='ssd', mode='gen_trt_engine')
+@monitor_status(name='ssd', mode='gen_trt_engine', hydra=False)
 def main(args):
     """SSD TRT convert."""
     # decrypt etlt
@@ -65,8 +65,6 @@ def main(args):
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size,
             calib_json_file=args.cal_json_file)
-
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

@@ -15,14 +15,13 @@
 """TensorRT Engine class for Deformable DETR."""
 
 from nvidia_tao_deploy.inferencer.trt_inferencer import TRTInferencer
-from nvidia_tao_deploy.inferencer.utils import allocate_buffers, do_inference
+from nvidia_tao_deploy.inferencer.utils import do_inference
 import numpy as np
 from PIL import ImageDraw
+import random
 
-import tensorrt as trt  # pylint: disable=unused-import
 
-
-def trt_output_process_fn(y_encoded, batch_size, num_classes):
+def trt_output_process_fn(y_encoded):
     """Function to process TRT model output.
 
     Args:
@@ -34,8 +33,7 @@ def trt_output_process_fn(y_encoded, batch_size, num_classes):
         pred_logits (np.ndarray): (B x NQ x N) logits of the prediction
         pred_boxes (np.ndarray): (B x NQ x 4) bounding boxes of the prediction
     """
-    pred_boxes, pred_logits = y_encoded
-    return pred_logits.reshape((batch_size, -1, num_classes)), pred_boxes.reshape((batch_size, -1, 4))
+    return [np.reshape(out.host, out.numpy_shape) for out in y_encoded]
 
 
 class GDINOInferencer(TRTInferencer):
@@ -52,41 +50,14 @@ class GDINOInferencer(TRTInferencer):
             data_format (str): either channel_first or channel_last
         """
         # Load TRT engine
-        super().__init__(engine_path)
-        self.max_batch_size = self.engine.max_batch_size
-        self.execute_v2 = False
-
-        # Execution context is needed for inference
-        self.context = None
-
-        # Allocate memory for multiple usage [e.g. multiple batch inference]
-        self._input_shape = []
-        self.context = self.engine.create_execution_context()
-        for binding in range(self.engine.num_bindings):
-            # set binding_shape for dynamic input
-            if self.engine.binding_is_input(binding):
-                _input_shape = self.engine.get_binding_shape(binding)[1:]
-                self._input_shape.append(_input_shape)
-                self.context.set_binding_shape(binding, [batch_size] + list(_input_shape))
-                if binding == 0 and len(_input_shape) == 3:
-                    self.height = _input_shape[1]
-                    self.width = _input_shape[2]
-        self.max_batch_size = batch_size
-        self.execute_v2 = True
-
+        super().__init__(
+            engine_path,
+            input_shape=input_shape,
+            batch_size=batch_size,
+            data_format=data_format,
+            reshape=False
+        )
         self.num_classes = num_classes
-
-        # This allocates memory for network inputs/outputs on both CPU and GPU
-        self.inputs, self.outputs, self.bindings, self.stream = allocate_buffers(self.engine,
-                                                                                 self.context)
-        if self.context is None:
-            self.context = self.engine.create_execution_context()
-
-        input_volumes = [trt.volume(shape) for shape in self._input_shape]
-        dtypes = (float, int, bool, int, int, bool)
-        self.numpy_array = [
-            np.zeros((self.max_batch_size, volume), dtype=dtype) for volume, dtype in zip(input_volumes, dtypes)
-        ]
 
     def infer(self, inputs):
         """Infers model on batch of same sized images resized to fit the model.
@@ -95,56 +66,22 @@ class GDINOInferencer(TRTInferencer):
             image_paths (str): paths to images, that will be packed into batch
                 and fed into model
         """
-        # Verify if the supplied batch size is not too big
-        max_batch_size = self.max_batch_size
-        for idx, inp in enumerate(inputs):
-            actual_batch_size = len(inp)
-            if actual_batch_size > max_batch_size:
-                raise ValueError(
-                    f"image_paths list bigger ({actual_batch_size}) than "
-                    f"engine max batch size ({max_batch_size})"
-                )
-            self.numpy_array[idx][:actual_batch_size] = inp.reshape(actual_batch_size, -1)
-            # ...copy them into appropriate place into memory...
-            # (self.inputs was returned earlier by allocate_buffers())
-            np.copyto(self.inputs[idx].host, self.numpy_array[idx].ravel())
+        # 6 inputs: (dummy_image, input_ids, attention_mask, position_ids, token_type_ids, text_self_attention_masks)
+        # inputs is already a list, so we can just pass it in since arg is list of named tensor inputs
+        self._copy_input_to_host(inputs)
 
         # ...fetch model outputs...
+        # 2 named results: [pred_logits, pred_boxes]
         results = do_inference(
             self.context, bindings=self.bindings, inputs=self.inputs,
             outputs=self.outputs, stream=self.stream,
-            batch_size=max_batch_size,
-            execute_v2=self.execute_v2)
-
-        # ...and return results up to the actual batch size.
-        y_pred = [i.reshape(max_batch_size, -1)[:actual_batch_size] for i in results]
+            batch_size=self.max_batch_size,
+            execute_v2=self.execute_async,
+            return_raw=True)
 
         # Process TRT outputs to proper format
-        results = trt_output_process_fn(y_pred, actual_batch_size, self.num_classes)
+        results = trt_output_process_fn(results)
         return results
-
-    def __del__(self):
-        """Clear things up on object deletion."""
-        # Clear session and buffer
-        if self.trt_runtime:
-            del self.trt_runtime
-
-        if self.context:
-            del self.context
-
-        if self.engine:
-            del self.engine
-
-        if self.stream:
-            del self.stream
-
-        # Loop through inputs and free inputs.
-        for inp in self.inputs:
-            inp.device.free()
-
-        # Loop through outputs and free them.
-        for out in self.outputs:
-            out.device.free()
 
     def draw_bbox(self, img, prediction, class_mapping, threshold=0.3, color_map=None):  # noqa pylint: disable=W0237
         """Draws bbox on image and dump prediction in KITTI format
@@ -157,6 +94,23 @@ class GDINOInferencer(TRTInferencer):
             color_map (dict): key is the class name and value is the color to be used
         """
         draw = ImageDraw.Draw(img)
+
+        # Create random color map if not provided
+        if not color_map:
+            # Get unique class names from valid predictions
+            unique_classes = set()
+            for i in prediction:
+                if int(i[0]) in class_mapping and float(i[1]) >= threshold:
+                    unique_classes.add(class_mapping[int(i[0])])
+
+            # Generate random colors for each unique class
+            color_map = {}
+            for cls_name in unique_classes:
+                color_map[cls_name] = (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255)
+                )
 
         label_strings = []
         for i in prediction:

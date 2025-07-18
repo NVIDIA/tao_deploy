@@ -16,11 +16,12 @@
 
 import os
 import logging
+import tensorrt as trt
 from tqdm.auto import tqdm
 
+from nvidia_tao_core.config.centerpose.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.centerpose.inferencer import CenterPoseInferencer
-from nvidia_tao_deploy.cv.centerpose.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.centerpose.dataloader import CPPredictDataset
 from nvidia_tao_deploy.cv.centerpose.utils import transform_outputs, merge_outputs, save_inference_prediction, PnPProcess
 
@@ -45,19 +46,12 @@ def main(cfg: ExperimentConfig) -> None:
 
     trt_infer = CenterPoseInferencer(cfg.inference.trt_engine,
                                      batch_size=cfg.dataset.batch_size)
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     batcher = CPPredictDataset(cfg.dataset, cfg.dataset.inference_data, (cfg.dataset.batch_size, c, h, w),
-                               trt_infer.inputs[0].host.dtype)
+                               trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     pnp_solver = PnPProcess(cfg.inference)
-
-    # Create results directories
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_inference")
-    os.makedirs(results_dir, exist_ok=True)
 
     for batches, img_paths, (cxcy, max_axis) in tqdm(batcher.get_batch(), total=batcher.num_batches, desc="Producing predictions"):
         # Handle last batch as we artifically pad images for the last batch idx
@@ -72,7 +66,7 @@ def main(cfg: ExperimentConfig) -> None:
         final_output = pnp_solver.get_process(merged_det)
 
         # Save the final results
-        save_inference_prediction(final_output, results_dir, img_paths, cfg.inference)
+        save_inference_prediction(final_output, cfg.results_dir, img_paths, cfg.inference)
 
     logging.info("Finished inference.")
 

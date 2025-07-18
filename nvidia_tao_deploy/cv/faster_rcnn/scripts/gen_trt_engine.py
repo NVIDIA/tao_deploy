@@ -34,7 +34,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='faster_rcnn', mode='gen_trt_engine')
+@monitor_status(name='faster_rcnn', mode='gen_trt_engine', hydra=False)
 def main(args):
     """FRCNN TRT convert."""
     # decrypt etlt
@@ -69,8 +69,6 @@ def main(args):
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size,
             calib_json_file=args.cal_json_file)
-
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

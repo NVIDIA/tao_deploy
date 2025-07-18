@@ -16,13 +16,13 @@
 
 import logging
 import os
+import sys
 import tempfile
 
-from nvidia_tao_deploy.cv.efficientdet_tf2.engine_builder import EfficientDetEngineBuilder
-from nvidia_tao_deploy.cv.efficientdet_tf2.hydra_config.default_config import ExperimentConfig
+from nvidia_tao_core.config.efficientdet_tf2.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.common.utils import update_results_dir
+from nvidia_tao_deploy.engine.builder import EngineBuilder
 from nvidia_tao_deploy.utils.decoding import decode_model
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
@@ -37,7 +37,11 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 def main(cfg: ExperimentConfig) -> None:
     """Wrapper function for TRT engine conversion."""
-    cfg = update_results_dir(cfg, 'gen_trt_engine')
+    # Deprecated: DLFW 25.01 doesn't support tensorflow_quantization
+    if sys.version_info >= (3, 12):
+        logger.warning("DeprecationWarning: QAT is not supported after DLFW 25.01. Using normal training.")
+        cfg.train.qat = False
+
     run_conversion(cfg=cfg)
 
 
@@ -55,25 +59,20 @@ def run_conversion(cfg: ExperimentConfig) -> None:
         else:
             output_engine_path = cfg.gen_trt_engine.trt_engine
 
-        builder = EfficientDetEngineBuilder(verbose=True,
-                                            workspace=cfg.gen_trt_engine.tensorrt.max_workspace_size,
-                                            max_batch_size=cfg.gen_trt_engine.tensorrt.max_batch_size,
-                                            is_qat=cfg.train.qat)
-        builder.create_network(tmp_onnx_file,
-                               dynamic_batch_size=(cfg.gen_trt_engine.tensorrt.min_batch_size,
-                                                   cfg.gen_trt_engine.tensorrt.opt_batch_size,
-                                                   cfg.gen_trt_engine.tensorrt.max_batch_size),
-                               file_format=file_format)
+        builder = EngineBuilder(verbose=True,
+                                workspace=cfg.gen_trt_engine.tensorrt.max_workspace_size,
+                                max_batch_size=cfg.gen_trt_engine.tensorrt.max_batch_size,
+                                is_qat=cfg.train.qat)
+        builder.create_network(tmp_onnx_file, file_format=file_format)
         builder.create_engine(
             output_engine_path,
             cfg.gen_trt_engine.tensorrt.data_type,
             calib_input=cfg.gen_trt_engine.tensorrt.calibration.cal_image_dir,
             calib_cache=cfg.gen_trt_engine.tensorrt.calibration.cal_cache_file,
             calib_num_images=cfg.gen_trt_engine.tensorrt.calibration.cal_batch_size * cfg.gen_trt_engine.tensorrt.calibration.cal_batches,
-            calib_batch_size=cfg.gen_trt_engine.tensorrt.calibration.cal_batch_size
+            calib_batch_size=cfg.gen_trt_engine.tensorrt.calibration.cal_batch_size,
+            tf2=True
         )
-
-    print("Export finished successfully.")
 
 
 if __name__ == '__main__':

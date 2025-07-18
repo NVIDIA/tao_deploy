@@ -17,15 +17,18 @@
 import os
 import logging
 import numpy as np
+import tensorrt as trt
 from tqdm import tqdm
+
+from nvidia_tao_core.config.visual_changenet.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-from nvidia_tao_deploy.cv.visual_changenet.hydra_config.default_config import ExperimentConfig
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.inferencer import ChangeNetInferencer as ChangeNetSegmentInferencer
 from nvidia_tao_deploy.cv.visual_changenet.classification.inferencer import ChangeNetInferencer as ChangeNetClassifyInferencer
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.dataloader import ChangeNetDataLoader as ChangeNetSegmentDataLoader
 from nvidia_tao_deploy.cv.optical_inspection.dataloader import OpticalInspectionDataLoader as ChangeNetClassifyDataLoader
+from nvidia_tao_deploy.cv.visual_changenet.dataloader import MultiGoldenDataLoader
 from nvidia_tao_deploy.cv.visual_changenet.segmentation.utils import get_color_mapping, visualize_infer_output
 from nvidia_tao_deploy.cv.visual_changenet.classification.utils import AOIMetrics
 
@@ -39,7 +42,7 @@ spec_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path=os.path.join(spec_root, "specs"),
     config_name="evaluate", schema=ExperimentConfig
 )
-@monitor_status(name='visual_changenet', mode='evaluation')
+@monitor_status(name='visual_changenet', mode='evaluate')
 def main(cfg: ExperimentConfig) -> None:
     """Visual ChangeNet TRT evaluation."""
     if not os.path.exists(cfg.evaluate.trt_engine):
@@ -48,12 +51,6 @@ def main(cfg: ExperimentConfig) -> None:
     logger.info("Running Evaluation")
     engine_file = cfg.evaluate.trt_engine
     batch_size = cfg.evaluate.batch_size
-    # Create results directories
-    if cfg.evaluate.results_dir:
-        results_dir = cfg.evaluate.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_evaluate")
-    os.makedirs(results_dir, exist_ok=True)
 
     task = cfg.task
 
@@ -70,13 +67,15 @@ def main(cfg: ExperimentConfig) -> None:
         logger.info("Instantiating the Visual ChangeNet Segmentation dataloader.")
         infer_dataloader = ChangeNetSegmentDataLoader(
             dataset_config=dataset_config,
-            dtype=changenet_inferencer.inputs[0].host.dtype,
+            dtype=trt.nptype(changenet_inferencer.input_tensors[0].tensor_dtype),
             mode='test',
             split=dataset_config.test_split
         )
 
     elif task == 'classify':
         dataset_config = cfg.dataset.classify
+        num_golden = dataset_config.num_golden
+
         logger.info("Instantiate the Visual ChangeNet Classification evaluate.")
         changenet_inferencer = ChangeNetClassifyInferencer(
             engine_path=engine_file,
@@ -85,14 +84,27 @@ def main(cfg: ExperimentConfig) -> None:
         )
 
         logger.info("Instantiating the Visual ChangeNet Classification dataloader.")
-        infer_dataloader = ChangeNetClassifyDataLoader(
-            csv_file=dataset_config.test_dataset.csv_path,
-            input_data_path=dataset_config.test_dataset.images_dir,
-            train=False,
-            data_config=dataset_config,
-            dtype=changenet_inferencer.inputs[0].host.dtype,
-            split='evaluate'
-        )
+        if num_golden == 1:
+            infer_dataloader = ChangeNetClassifyDataLoader(
+                csv_file=dataset_config.test_dataset.csv_path,
+                input_data_path=dataset_config.test_dataset.images_dir,
+                train=False,
+                data_config=dataset_config,
+                dtype=trt.nptype(changenet_inferencer.input_tensors[0].tensor_dtype),
+                split='evaluate',
+                batch_size=batch_size
+            )
+        else:
+            infer_dataloader = MultiGoldenDataLoader(
+                csv_file=dataset_config.test_dataset.csv_path,
+                input_data_path=dataset_config.test_dataset.images_dir,
+                train=False,
+                data_config=dataset_config,
+                dtype=trt.nptype(changenet_inferencer.input_tensors[0].tensor_dtype),
+                split='evaluate',
+                batch_size=batch_size,
+                num_golden=num_golden
+            )
 
     else:
         raise NotImplementedError('Only tasks supported by Visual ChangeNet are: "segment" and "classify"')
@@ -121,7 +133,7 @@ def main(cfg: ExperimentConfig) -> None:
             # Save output visualisation
             for img1, img2, result, img_name, gt in zip(img_1, img_2, results, image_names, label):
                 visualize_infer_output(img_name, result, img1, img2, dataset_config.num_classes,
-                                       color_map, results_dir, gt, mode='test')
+                                       color_map, cfg.results_dir, gt, mode='test')
 
         scores, mean_score_dict = changenet_inferencer.running_metric.get_scores()
         logger.info("Evaluation Metric Scores: {}".format(scores))
@@ -168,7 +180,7 @@ def main(cfg: ExperimentConfig) -> None:
         logger.info("Total number of evaluate outputs: {}".format(len(evaluate_score)))
         infer_dataloader.merged["output_score"] = evaluate_score[:len(infer_dataloader.merged)]
         infer_dataloader.merged.to_csv(
-            os.path.join(results_dir, "evaluate.csv"),
+            os.path.join(cfg.results_dir, "evaluate.csv"),
             header=True,
             index=False
         )

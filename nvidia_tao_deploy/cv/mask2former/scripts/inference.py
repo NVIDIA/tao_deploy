@@ -20,12 +20,14 @@ import json
 import logging
 import numpy as np
 from PIL import Image
+import tensorrt as trt
 from tqdm.auto import tqdm
+
+from nvidia_tao_core.config.mask2former.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
 from nvidia_tao_deploy.cv.mask2former.inferencer import Mask2formerInferencer
-from nvidia_tao_deploy.cv.mask2former.hydra_config.default_config import ExperimentConfig
 
 from nvidia_tao_deploy.cv.mask2former.d2.structures import Instances
 from nvidia_tao_deploy.cv.mask2former.d2.visualizer import ColorMode, Visualizer
@@ -102,21 +104,12 @@ def main(cfg: ExperimentConfig) -> None:
         batch_size=cfg.dataset.test.batch_size,
         is_inference=True)
 
-    _, hh, ww = trt_infer._input_shape
-
-    # Create results directories
-    if cfg.inference.results_dir:
-        results_dir = cfg.inference.results_dir
-    else:
-        results_dir = os.path.join(cfg.results_dir, "trt_inference")
-
-    os.makedirs(results_dir, exist_ok=True)
+    _, hh, ww = trt_infer.input_tensors[0].shape
 
     # Inference may not have labels. Hence, use image batcher
-    batch_size = trt_infer.max_batch_size
     batcher = ImageBatcher(cfg.dataset.test.img_dir,
-                           (batch_size,) + trt_infer._input_shape,
-                           trt_infer.inputs[0].host.dtype,
+                           trt_infer.input_tensors[0].tensor_shape,
+                           trt.nptype(trt_infer.input_tensors[0].tensor_dtype),
                            preprocessor="Mask2former",
                            img_mean=cfg.dataset.pixel_mean,
                            img_std=cfg.dataset.pixel_std)
@@ -198,11 +191,11 @@ def main(cfg: ExperimentConfig) -> None:
                     mask_img,
                 )
             cv2.imwrite(
-                os.path.join(results_dir, os.path.basename(curr_path)[:-4] + ".jpg"),
+                os.path.join(cfg.results_dir, os.path.basename(curr_path)[:-4] + ".jpg"),
                 vis_output.get_image()
             )
 
-    logging.info("Inference results were saved at %s.", results_dir)
+    logging.info("Inference results were saved at %s.", cfg.results_dir)
 
 
 def load_image(file_name, root_dir=None, target_size=None):

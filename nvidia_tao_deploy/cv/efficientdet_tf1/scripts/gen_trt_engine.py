@@ -34,7 +34,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='efficientdet_tf1', mode='gen_trt_engine')
+@monitor_status(name='efficientdet_tf1', mode='gen_trt_engine', hydra=False)
 def main(args):
     """Convert encrypted uff or onnx model to TRT engine."""
     # decrypt etlt
@@ -62,8 +62,6 @@ def main(args):
             calib_cache=args.cal_cache_file,
             calib_num_images=args.batch_size * args.batches,
             calib_batch_size=args.batch_size)
-
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

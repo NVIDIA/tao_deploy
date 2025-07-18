@@ -13,3 +13,11 @@
 # limitations under the License.
 
 """TAO Deploy utils"""
+
+from packaging import version
+import tensorrt as trt
+
+
+def LEGACY_API_MODE():
+    """Check if API is to be run TensorRT 8.x compatible."""
+    return version.Version(trt.__version__) < version.Version("9.0.0")

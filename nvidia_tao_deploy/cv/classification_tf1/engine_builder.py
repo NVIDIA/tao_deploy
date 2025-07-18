@@ -19,32 +19,8 @@ from pathlib import Path
 import os
 import random
 from six.moves import xrange
-import sys
-import traceback
 
 from tqdm import tqdm
-
-try:
-    from uff.model.uff_pb2 import MetaGraph
-except ImportError:
-    print("Loading uff directly from the package source code")
-    # @scha: To disable tensorflow import issue
-    import importlib
-    import types
-    import pkgutil
-
-    package = pkgutil.get_loader("uff")
-    # Returns __init__.py path
-    src_code = package.get_filename().replace('__init__.py', 'model/uff_pb2.py')
-
-    loader = importlib.machinery.SourceFileLoader('helper', src_code)
-    helper = types.ModuleType(loader.name)
-    loader.exec_module(helper)
-    MetaGraph = helper.MetaGraph
-
-import numpy as np
-import onnx
-import tensorrt as trt
 
 from nvidia_tao_deploy.cv.common.constants import VALID_IMAGE_EXTENSIONS
 from nvidia_tao_deploy.engine.builder import EngineBuilder
@@ -59,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class ClassificationEngineBuilder(EngineBuilder):
-    """Parses an UFF graph and builds a TensorRT engine from it."""
+    """Parses an ONNX graph and builds a TensorRT engine from it."""
 
     def __init__(
         self,
@@ -85,27 +61,6 @@ class ClassificationEngineBuilder(EngineBuilder):
         self._output_node_names = ["predictions/Softmax"]
         self._input_node_names = ["input_1"]
 
-    def get_uff_input_dims(self, model_path):
-        """Get input dimension of UFF model."""
-        metagraph = MetaGraph()
-        with open(model_path, "rb") as f:
-            metagraph.ParseFromString(f.read())
-        for node in metagraph.graphs[0].nodes:
-            if node.operation == "Input":
-                return np.array(node.fields['shape'].i_list.val)[1:]
-        raise ValueError("Input dimension is not found in the UFF metagraph.")
-
-    def get_onnx_input_dims(self, model_path):
-        """Get input dimension of ONNX model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        logger.info('List inputs:')
-        for i, inputs in enumerate(onnx_inputs):
-            logger.info('Input %s -> %s.', i, inputs.name)
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][1:])
-            logger.info('%s.', [i.dim_value for i in inputs.type.tensor_type.shape.dim][0])
-            return [i.dim_value for i in inputs.type.tensor_type.shape.dim][:]
-
     def create_network(self, model_path, file_format="onnx"):
         """Parse the UFF/ONNX graph and create the corresponding TensorRT network definition.
 
@@ -113,142 +68,10 @@ class ClassificationEngineBuilder(EngineBuilder):
             model_path: The path to the UFF/ONNX graph to load.
             file_format: The file format of the decrypted etlt file (default: onnx).
         """
-        if file_format == "onnx":
-            logger.info("Parsing ONNX model")
-            self._input_dims = self.get_onnx_input_dims(model_path)
-            self.batch_size = self._input_dims[0]
-            self._input_dims = self._input_dims[1:]
-
-            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
-            network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
-
-            self.network = self.builder.create_network(network_flags)
-            self.parser = trt.OnnxParser(self.network, self.trt_logger)
-
-            model_path = os.path.realpath(model_path)
-            if not self.parser.parse_from_file(model_path):
-                logger.error("Failed to load ONNX file: %s", model_path)
-                for error in range(self.parser.num_errors):
-                    logger.error(self.parser.get_error(error))
-                sys.exit(1)
-
-            inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-            outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
-
-            logger.info("Network Description")
-            for input in inputs: # noqa pylint: disable=W0622
-                logger.info("Input '%s' with shape %s and dtype %s", input.name, input.shape, input.dtype)
-            for output in outputs:
-                logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
-
-            if self.batch_size <= 0:  # dynamic batch size
-                logger.info("dynamic batch size handling")
-                opt_profile = self.builder.create_optimization_profile()
-                model_input = self.network.get_input(0)
-                input_shape = model_input.shape
-                input_name = model_input.name
-                real_shape_min = (self.min_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_opt = (self.opt_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                real_shape_max = (self.max_batch_size, input_shape[1],
-                                  input_shape[2], input_shape[3])
-                opt_profile.set_shape(input=input_name,
-                                      min=real_shape_min,
-                                      opt=real_shape_opt,
-                                      max=real_shape_max)
-                self.config.add_optimization_profile(opt_profile)
-            else:
-                self.builder.max_batch_size = self.max_batch_size
+        if file_format == "uff":
+            self.parse_uff_model(model_path)
         else:
-            logger.info("Parsing UFF model")
-            self.network = self.builder.create_network()
-            self.parser = trt.UffParser()
-
-            self.set_input_output_node_names()
-
-            in_tensor_name = self._input_node_names[0]
-
-            self._input_dims = self.get_uff_input_dims(model_path)
-            input_dict = {in_tensor_name: self._input_dims}
-            for key, value in input_dict.items():
-                if self._data_format == "channels_first":
-                    self.parser.register_input(key, value, trt.UffInputOrder(0))
-                else:
-                    self.parser.register_input(key, value, trt.UffInputOrder(1))
-            for name in self._output_node_names:
-                self.parser.register_output(name)
-            self.builder.max_batch_size = self.max_batch_size
-            try:
-                assert self.parser.parse(model_path, self.network, trt.DataType.FLOAT)
-            except AssertionError as e:
-                logger.error("Failed to parse UFF File")
-                _, _, tb = sys.exc_info()
-                traceback.print_tb(tb)  # Fixed format
-                tb_info = traceback.extract_tb(tb)
-                _, line, _, text = tb_info[-1]
-                raise AssertionError(
-                    f"UFF parsing failed on line {line} in statement {text}"
-                ) from e
-
-    def create_engine(self, engine_path, precision,
-                      calib_input=None, calib_cache=None, calib_num_images=5000,
-                      calib_batch_size=8, calib_data_file=None):
-        """Build the TensorRT engine and serialize it to disk.
-
-        Args:
-            engine_path: The path where to serialize the engine to.
-            precision: The datatype to use for the engine, either 'fp32', 'fp16' or 'int8'.
-            calib_input: The path to a directory holding the calibration images.
-            calib_cache: The path where to write the calibration cache to,
-                         or if it already exists, load it from.
-            calib_num_images: The maximum number of images to use for calibration.
-            calib_batch_size: The batch size to use for the calibration process.
-        """
-        engine_path = os.path.realpath(engine_path)
-        engine_dir = os.path.dirname(engine_path)
-        os.makedirs(engine_dir, exist_ok=True)
-        logger.debug("Building %s Engine in %s", precision, engine_path)
-
-        inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
-
-        if self.batch_size is None:
-            self.batch_size = calib_batch_size
-            self.builder.max_batch_size = self.batch_size
-
-        if precision.lower() == "fp16":
-            if not self.builder.platform_has_fast_fp16:
-                logger.warning("FP16 is not supported natively on this platform/device")
-            else:
-                self.config.set_flag(trt.BuilderFlag.FP16)
-        elif precision.lower() == "int8":
-            if not self.builder.platform_has_fast_int8:
-                logger.warning("INT8 is not supported natively on this platform/device")
-            elif self._is_qat:
-                # Only applicable in TF2.
-                # TF2 embeds QAT scales into the ONNX directly.
-                # Hence, no need to set dynamic range of tensors.
-                self.config.set_flag(trt.BuilderFlag.INT8)
-            else:
-                if self.builder.platform_has_fast_fp16 and not self._strict_type:
-                    # Also enable fp16, as some layers may be even more efficient in fp16 than int8
-                    self.config.set_flag(trt.BuilderFlag.FP16)
-                else:
-                    self.config.set_flag(trt.BuilderFlag.STRICT_TYPES)
-                self.config.set_flag(trt.BuilderFlag.INT8)
-                # Set Tensorfile based calibrator
-                self.set_calibrator(inputs=inputs,
-                                    calib_cache=calib_cache,
-                                    calib_input=calib_input,
-                                    calib_num_images=calib_num_images,
-                                    calib_batch_size=calib_batch_size,
-                                    calib_data_file=calib_data_file,
-                                    image_mean=self.image_mean)
-
-        with self.builder.build_engine(self.network, self.config) as engine, \
-                open(engine_path, "wb") as f:
-            logger.debug("Serializing engine to file: %s", engine_path)
-            f.write(engine.serialize())
+            super().create_network(model_path, file_format)
 
     def set_calibrator(self,
                        inputs=None,
@@ -256,8 +79,7 @@ class ClassificationEngineBuilder(EngineBuilder):
                        calib_input=None,
                        calib_num_images=5000,
                        calib_batch_size=8,
-                       calib_data_file=None,
-                       image_mean=None):
+                       calib_data_file=None):
         """Simple function to set an Tensorfile based int8 calibrator.
 
         Args:
@@ -270,7 +92,6 @@ class ClassificationEngineBuilder(EngineBuilder):
                          or if it already exists, load it from.
             calib_num_images: The maximum number of images to use for calibration.
             calib_batch_size: The batch size to use for the calibration process.
-            image_mean: Image mean per channel.
 
         Returns:
             No explicit returns.
@@ -281,10 +102,10 @@ class ClassificationEngineBuilder(EngineBuilder):
         if not os.path.exists(calib_data_file):
             self.generate_tensor_file(calib_data_file,
                                       calib_input,
-                                      self._input_dims,
+                                      list(self._input_dims.values())[0],
                                       n_batches=n_batches,
                                       batch_size=calib_batch_size,
-                                      image_mean=image_mean)
+                                      image_mean=self.image_mean)
         self.config.int8_calibrator = TensorfileCalibrator(calib_data_file,
                                                            calib_cache,
                                                            n_batches,

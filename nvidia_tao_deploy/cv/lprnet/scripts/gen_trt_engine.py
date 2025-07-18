@@ -34,7 +34,7 @@ DEFAULT_MIN_BATCH_SIZE = 1
 DEFAULT_OPT_BATCH_SIZE = 1
 
 
-@monitor_status(name='lprnet', mode='gen_trt_engine')
+@monitor_status(name='lprnet', mode='gen_trt_engine', hydra=False)
 def main(args):
     """LPRNet convert."""
     # decrypt etlt
@@ -57,8 +57,6 @@ def main(args):
         builder.create_engine(
             output_engine_path,
             args.data_type)
-
-    print("Export finished successfully.")
 
 
 def build_command_line_parser(parser=None):

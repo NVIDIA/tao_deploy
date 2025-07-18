@@ -14,14 +14,11 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import json
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 import logging
@@ -43,7 +40,7 @@ logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
                     level='INFO')
 
 
-@monitor_status(name='detectnet_v2', mode='evaluation')
+@monitor_status(name='detectnet_v2', mode='evaluate', hydra=False)
 def main(args):
     """DetectNetv2 TRT evaluation."""
     experiment_spec = load_proto(args.experiment_spec)
@@ -64,7 +61,7 @@ def main(args):
                         "%d to engine's batch size %d", batch_size, trt_infer.max_batch_size)
         batch_size = trt_infer.max_batch_size
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     dl = DetectNetKITTILoader(
         shape=(c, h, w),
@@ -74,7 +71,7 @@ def main(args):
         exclude_difficult=True,
         batch_size=batch_size,
         image_mean=None,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     bboxer = BboxHandler(batch_size=batch_size,
                          frame_height=h,

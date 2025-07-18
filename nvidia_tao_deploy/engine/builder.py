@@ -14,15 +14,22 @@
 
 """Base TensorRT engine builder."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
+import sys
 import json
 import logging
+import numpy as np
 import os
 import struct
 import tensorrt as trt
+import traceback
 
+from nvidia_tao_deploy.cv.common.parser import MetaGraph, UFF_ENABLED
+from nvidia_tao_deploy.utils import LEGACY_API_MODE
 from nvidia_tao_deploy.engine.calibrator import EngineCalibrator
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
+
+TRT_8_API = LEGACY_API_MODE()
 
 
 precision_mapping = {
@@ -58,7 +65,8 @@ class EngineBuilder(ABC):
                  workspace=DEFAULT_MAX_WORKSPACE_SIZE,
                  strict_type_constraints=False,
                  force_ptq=False,
-                 is_qat=False):
+                 is_qat=False,
+                 timing_cache_path=None):
         """Create a TensorRT engine.
 
         Args:
@@ -73,6 +81,7 @@ class EngineBuilder(ABC):
                 for a QAT trained model. This is required if the inference platform is
                 a Jetson with a DLA.
             is_qat (bool): Wheter or not the model is a QAT.
+            timing_cache_path (str): Path to timing cache that will be created/read/updated
         """
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         if verbose:
@@ -82,7 +91,14 @@ class EngineBuilder(ABC):
 
         self.builder = trt.Builder(self.trt_logger)
         self.config = self.builder.create_builder_config()
-        self.config.max_workspace_size = workspace * (2 ** 30)
+        # Set max workspace size.
+        self.config.set_memory_pool_limit(
+            trt.MemoryPoolType.WORKSPACE,
+            workspace * (2 ** 30)
+        )
+
+        self.timing_cache_path = timing_cache_path
+        self._set_timing_cache()
 
         self.batch_size = batch_size
         self.max_batch_size, self.opt_batch_size, self.min_batch_size = max_batch_size, opt_batch_size, min_batch_size
@@ -90,27 +106,90 @@ class EngineBuilder(ABC):
         self.parser = None
 
         # Disable QAT regardless of is_qat flag if force_ptq is True
+        logger.info("Setting up QAT mode: {is_qat}".format(is_qat=is_qat))
         self._is_qat = is_qat if not force_ptq else False
         self._strict_type = strict_type_constraints
 
         self._trt_version_number = NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + \
             NV_TENSORRT_PATCH
-        # if self._trt_version_number < 8600:
-        #     if self._trt_version_number >= 8500:
-        #         logger.info("TRT version is lower than 8.6. Setting PreviewFeature.FASTER_DYNAMIC_SHAPES_0805 for better performance")
-        #         faster_dynamic_shapes = True  # Only supported from TRT 8.5+
-        #     else:
-        #         faster_dynamic_shapes = False
-        #     self.config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, faster_dynamic_shapes)
+        if self._trt_version_number < 8600:
+            if self._trt_version_number >= 8500:
+                logger.info("TRT version is lower than 8.6. Setting PreviewFeature.FASTER_DYNAMIC_SHAPES_0805 for better performance")
+                faster_dynamic_shapes = True  # Only supported from TRT 8.5+
+            else:
+                faster_dynamic_shapes = False
+            self.config.set_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805, faster_dynamic_shapes)
 
-    @abstractmethod
-    def create_network(self, model_path):
-        """Parse the ONNX or UFF graph and create the corresponding TensorRT network definition.
+    def create_network(self, model_path, file_format="onnx"):
+        """Parse the UFF/ONNX graph and create the corresponding TensorRT network definition.
 
         Args:
-            model_path (str): The path to the ONNX or UFF graph to load.
+            model_path: The path to the UFF/ONNX graph to load.
+            file_format: The file format of the decrypted etlt file (default: onnx).
         """
-        pass
+        if file_format == "onnx":
+            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+            if TRT_8_API:
+                network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
+
+            self.network = self.builder.create_network(network_flags)
+            self.parser = trt.OnnxParser(self.network, self.trt_logger)
+
+            model_path = os.path.realpath(model_path)
+            if not self.parser.parse_from_file(model_path):
+                logger.error("Failed to load ONNX file: %s", model_path)
+                for error in range(self.parser.num_errors):
+                    logger.error(self.parser.get_error(error))
+                sys.exit(1)
+
+            inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
+            outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
+
+            logger.info("Parsing ONNX model")
+            # input_dims are a dict {name: shape}
+            input_dims = self.get_onnx_input_dims(inputs)
+            batch_sizes = {v[0] for v in input_dims.values()}
+            assert len(batch_sizes) == 1, (
+                "All tensors should have the same batch size."
+            )
+            self.batch_size = list(batch_sizes)[0]
+            self._input_dims = {}
+            for k, v in input_dims.items():
+                self._input_dims[k] = v[1:]
+
+            logger.info("Network Description")
+            opt_profile = self.builder.create_optimization_profile()
+            for model_input in inputs: # noqa pylint: disable=W0622
+                logger.info("Input '%s' with shape %s and dtype %s", model_input.name, model_input.shape, model_input.dtype)
+                input_shape = model_input.shape
+                input_name = model_input.name
+                if self.batch_size <= 0:
+                    real_shape_min = (self.min_batch_size, *input_shape[1:])
+                    real_shape_opt = (self.opt_batch_size, *input_shape[1:])
+                    real_shape_max = (self.max_batch_size, *input_shape[1:])
+                    opt_profile.set_shape(
+                        input=input_name,
+                        min=real_shape_min,
+                        opt=real_shape_opt,
+                        max=real_shape_max
+                    )
+                else:
+                    shape = (self.batch_size, *input_shape[1:])
+                    opt_profile.set_shape(
+                        input=input_name,
+                        min=shape,
+                        opt=shape,
+                        max=shape
+                    )
+
+            self.config.add_optimization_profile(opt_profile)
+            self.config.set_calibration_profile(opt_profile)
+
+            for output in outputs:
+                logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
+
+        else:
+            raise NotImplementedError(f"{file_format.capitalize()} backend is not supported for network.")
 
     def set_calibrator(self,
                        inputs=None,
@@ -163,14 +242,14 @@ class EngineBuilder(ABC):
             logger.info(' ')
             if self.config.get_flag(trt.BuilderFlag.FP16):
                 logger.info('  BuilderFlag.FP16')
+            if self.config.get_flag(trt.BuilderFlag.BF16):
+                logger.info('  BuilderFlag.BF16')
             if self.config.get_flag(trt.BuilderFlag.INT8):
                 logger.info('  BuilderFlag.INT8')
             if self.config.get_flag(trt.BuilderFlag.DEBUG):
                 logger.info('  BuilderFlag.DEBUG')
             if self.config.get_flag(trt.BuilderFlag.GPU_FALLBACK):
                 logger.info('  BuilderFlag.GPU_FALLBACK')
-            if self.config.get_flag(trt.BuilderFlag.STRICT_TYPES):
-                logger.info('  BuilderFlag.STRICT_TYPES')
             if self.config.get_flag(trt.BuilderFlag.REFIT):
                 logger.info('  BuilderFlag.REFIT')
             if self.config.get_flag(trt.BuilderFlag.DISABLE_TIMING_CACHE):
@@ -189,8 +268,20 @@ class EngineBuilder(ABC):
                 logger.info('  BuilderFlag.DIRECT_IO')
             if self.config.get_flag(trt.BuilderFlag.REJECT_EMPTY_ALGORITHMS):
                 logger.info('  BuilderFlag.REJECT_EMPTY_ALGORITHMS')
-            if self.config.get_flag(trt.BuilderFlag.ENABLE_TACTIC_HEURISTIC):
-                logger.info('  BuilderFlag.ENABLE_TACTIC_HEURISTIC')
+            if self.config.get_flag(trt.BuilderFlag.VERSION_COMPATIBLE):
+                logger.info('  BuilderFlag.VERSION_COMPATIBLE')
+            if self.config.get_flag(trt.BuilderFlag.FP8):
+                logger.info('  BuilderFlag.FP8')
+            if self.config.get_flag(trt.BuilderFlag.ERROR_ON_TIMING_CACHE_MISS):
+                logger.info('  BuilderFlag.ERROR_ON_TIMING_CACHE_MISS')
+            if self.config.get_flag(trt.BuilderFlag.DISABLE_COMPILATION_CACHE):
+                logger.info('  BuilderFlag.DISABLE_COMPILATION_CACHE')
+            if self.config.get_flag(trt.BuilderFlag.STRIP_PLAN):
+                logger.info('  BuilderFlag.STRIP_PLAN')
+            if self.config.get_flag(trt.BuilderFlag.REFIT_IDENTICAL):
+                logger.info('  BuilderFlag.REFIT_IDENTICAL')
+            if self.config.get_flag(trt.BuilderFlag.WEIGHT_STREAMING):
+                logger.info('  BuilderFlag.WEIGHT_STREAMING')
 
             logger.info(' ')
             # Return int32 and thus cannot represent >2GB
@@ -203,21 +294,110 @@ class EngineBuilder(ABC):
             logger.info('  MemoryPoolType.DLA_LOCAL_DRAM = %d bytes', pool_limit)
             pool_limit = self.config.get_memory_pool_limit(trt.MemoryPoolType.DLA_GLOBAL_DRAM)
             logger.info('  MemoryPoolType.DLA_GLOBAL_DRAM = %d bytes', pool_limit)
+            pool_limit = self.config.get_memory_pool_limit(trt.MemoryPoolType.TACTIC_DRAM)
+            logger.info('  MemoryPoolType.TACTIC_DRAM = %d bytes', pool_limit)
+            pool_limit = self.config.get_memory_pool_limit(trt.MemoryPoolType.TACTIC_SHARED_MEMORY)
+            logger.info('  MemoryPoolType.TACTIC_SHARED_MEMORY = %d bytes', pool_limit)
 
             logger.info(' ')
-            if self.config.get_preview_feature(trt.PreviewFeature.FASTER_DYNAMIC_SHAPES_0805):
-                logger.info('  PreviewFeature.FASTER_DYNAMIC_SHAPES_0805')
-            if self.config.get_preview_feature(trt.PreviewFeature.DISABLE_EXTERNAL_TACTIC_SOURCES_FOR_CORE_0805):
-                logger.info('  PreviewFeature.DISABLE_EXTERNAL_TACTIC_SOURCES_FOR_CORE_0805')
             if self.config.get_quantization_flag(trt.QuantizationFlag.CALIBRATE_BEFORE_FUSION):
                 logger.info('  QuantizationFlag.CALIBRATE_BEFORE_FUSION')
             tactic_sources = self.config.get_tactic_sources()
             logger.info('  Tactic Sources = %d', tactic_sources)
 
+    def _set_precision_constraints(self):
+        """Set precision constraints based on platform."""
+        if self.builder.platform_has_fast_fp16 and not self._strict_type:
+            # Also enable fp16, as some layers may be even more efficient in fp16 than int8
+            self.config.set_flag(trt.BuilderFlag.FP16)
+        else:
+            logger.info("Setting strict precision constraints.")
+            if TRT_8_API:
+                self.config.set_flag(trt.BuilderFlag.STRICT_TYPES)
+            else:
+                # self.config.set_flag(trt.BuilderFlag.OBEY_PRECISION_CONSTRAINTS)
+                self.config.set_flag(trt.BuilderFlag.PREFER_PRECISION_CONSTRAINTS)
+                self.config.set_flag(trt.BuilderFlag.DIRECT_IO)
+                self.config.set_flag(trt.BuilderFlag.REJECT_EMPTY_ALGORITHMS)
+
+    def get_onnx_input_dims(self, onnx_inputs):
+        """Get input dimension of ONNX model."""
+        # @seanf: old version used onnx library's onnx.load() -> model.graph.input, but this was incorrect for mmcv models
+        # It would treat every layer as an input
+        # trt.OnnxParser does the job correctly
+        logger.info('List inputs:')
+        input_dims = {}
+        for i, inputs in enumerate(onnx_inputs):
+            logger.info('Input %s -> %s.', i, inputs.name)
+            logger.info('%s.', inputs.shape[1:])
+            logger.info('%s.', inputs.shape[0])
+            input_dims[inputs.name] = inputs.shape
+        return input_dims
+
+    def get_uff_input_dims(self, model_path):
+        """Get input dimension of UFF model."""
+        if UFF_ENABLED:
+            metagraph = MetaGraph()
+            with open(model_path, "rb") as f:
+                metagraph.ParseFromString(f.read())
+            for node in metagraph.graphs[0].nodes:
+                # if node.operation == "MarkOutput":
+                #     print(f"Output: {node.inputs[0]}")
+                if node.operation == "Input":
+                    return np.array(node.fields['shape'].i_list.val)[1:]
+            raise ValueError("Input dimension is not found in the UFF metagraph.")
+        raise NotImplementedError(
+            f"UFF parsing is not enabled for the current version of TensorRT ({trt.__version__})"
+        )
+
+    def parse_uff_model(self, model_path):
+        """Parse a UFF model.
+
+        Arg:
+
+            model_path (str): Path to the UFF model.
+        """
+        # Setting this based for compatibility based on
+        # TensorRT < 9.0.0
+        if UFF_ENABLED:
+            logger.info("Parsing UFF model")
+            self.network = self.builder.create_network()
+            self.parser = trt.UffParser()
+
+            self.set_input_output_node_names()
+
+            in_tensor_name = self._input_node_names[0]
+
+            self._input_dims = self.get_uff_input_dims(model_path)
+            input_dict = {in_tensor_name: self._input_dims}
+            for key, value in input_dict.items():
+                if self._data_format == "channels_first":
+                    self.parser.register_input(key, value, trt.UffInputOrder(0))
+                else:
+                    self.parser.register_input(key, value, trt.UffInputOrder(1))
+            for name in self._output_node_names:
+                self.parser.register_output(name)
+            self.builder.max_batch_size = self.max_batch_size
+            try:
+                assert self.parser.parse(model_path, self.network, trt.DataType.FLOAT)
+            except AssertionError as e:
+                logger.error("Failed to parse UFF File")
+                _, _, tb = sys.exc_info()
+                traceback.print_tb(tb)  # Fixed format
+                tb_info = traceback.extract_tb(tb)
+                _, line, _, text = tb_info[-1]
+                raise AssertionError(
+                    f"UFF parsing failed on line {line} in statement {text}"
+                ) from e
+        raise NotImplementedError(
+            f"UFF model parsing is not implemented in TensorRT version {trt.__version__}."
+        )
+
     def create_engine(self, engine_path, precision,
                       calib_input=None, calib_cache=None, calib_num_images=5000,
                       calib_batch_size=8, calib_data_file=None, calib_json_file=None,
-                      layers_precision=None, profilingVerbosity="detailed"):
+                      layers_precision=None, profilingVerbosity="detailed",
+                      tf2=False):
         """Build the TensorRT engine and serialize it to disk.
 
         Args:
@@ -239,7 +419,8 @@ class EngineBuilder(ABC):
 
         if self.batch_size is None:
             self.batch_size = calib_batch_size
-            self.builder.max_batch_size = self.batch_size
+            if TRT_8_API:
+                self.builder.max_batch_size = self.batch_size
 
         # This should be only applied for ONNX
         if self.batch_size != calib_batch_size and self.batch_size > 0:
@@ -251,60 +432,95 @@ class EngineBuilder(ABC):
             logger.warning(warning_msg)
             calib_batch_size = self.batch_size
 
-        if self._is_qat and precision != "int8":
+        if self._is_qat and precision.lower() != "int8":
             raise ValueError(f"QAT model only supports data_type int8 but {precision} was provided.")
 
-        if precision == "fp16":
+        if precision.lower() == "fp16":
             if not self.builder.platform_has_fast_fp16:
                 logger.warning("FP16 is not supported natively on this platform/device")
             else:
                 self.config.set_flag(trt.BuilderFlag.FP16)
-        elif precision == "int8":
+        elif precision.lower() == "int8":
             if not self.builder.platform_has_fast_int8:
                 logger.warning("INT8 is not supported natively on this platform/device")
-            elif self._is_qat:
-                self.config.set_flag(trt.BuilderFlag.INT8)
-                if self.builder.platform_has_fast_fp16 and not self._strict_type:
-                    # Also enable fp16, as some layers may be even more efficient in fp16 than int8
-                    self.config.set_flag(trt.BuilderFlag.FP16)
-                else:
-                    self.config.set_flag(trt.BuilderFlag.STRICT_TYPES)
-                logger.info("Calibrating using tensor scales for QAT model")
-                # Load from calib_json_file
-                self.calibration_cache_from_dict(calib_cache, calib_json_file)
-                # Set dynamic ranges of tensors using scales from QAT
-                self._set_tensor_dynamic_ranges(
-                    network=self.network, tensor_scale_dict=self.tensor_scale_dict
-                )
-
             else:
-                if self.builder.platform_has_fast_fp16 and not self._strict_type:
-                    # Also enable fp16, as some layers may be even more efficient in fp16 than int8
-                    self.config.set_flag(trt.BuilderFlag.FP16)
-                else:
-                    self.config.set_flag(trt.BuilderFlag.STRICT_TYPES)
                 self.config.set_flag(trt.BuilderFlag.INT8)
-                # Set ImageBatcher based calibrator
-                self.set_calibrator(inputs=inputs,
-                                    calib_cache=calib_cache,
-                                    calib_input=calib_input,
-                                    calib_num_images=calib_num_images,
-                                    calib_batch_size=calib_batch_size,
-                                    calib_data_file=calib_data_file)
+                self._set_precision_constraints()
+                if self._is_qat:
+                    if tf2:
+                        # TF2 embeds QAT scales into the ONNX directly.
+                        # Hence, no need to set dynamic range of tensors if tf2
+                        pass
+                    else:
+                        logger.info("Setting tensor dynamic ranges from the QAT model tensor scales in {}".format(
+                            calib_json_file
+                        ))
+                        self.calibration_cache_from_dict(calib_cache, calib_json=calib_json_file)
+                        self._set_tensor_dynamic_ranges(
+                            network=self.network,
+                            tensor_scale_dict=self.tensor_scale_dict
+                        )
+                else:
+                    self.set_calibrator(
+                        inputs=inputs,
+                        calib_cache=calib_cache,
+                        calib_input=calib_input,
+                        calib_num_images=calib_num_images,
+                        calib_batch_size=calib_batch_size,
+                        calib_data_file=calib_data_file
+                    )
 
+        if precision.lower() != "fp32":
             if layers_precision is not None and len(layers_precision) > 0:
-                # self.config.set_flag(trt.BuilderFlag.OBEY_PRECISION_CONSTRAINTS)
                 self.config.set_flag(trt.BuilderFlag.PREFER_PRECISION_CONSTRAINTS)
-                self.setLayerPrecisions(layers_precision)
+                self.set_layer_precisions(layers_precision)
 
         if profilingVerbosity == "detailed":
             self.config.profiling_verbosity = trt.ProfilingVerbosity.DETAILED
 
         self._logger_info_IBuilderConfig()
-        with self.builder.build_engine(self.network, self.config) as engine, \
+        self._write_engine(engine_path)
+        self._write_timing_cache()
+
+    def _write_engine(self, engine_path: str):
+        """Save engine based on the builder."""
+        assert all([
+            self.builder is not None,
+            self.network is not None,
+            self.config is not None
+        ]), (
+            "Make sure the network, build config and builder was defined."
+        )
+        with self.builder.build_serialized_network(self.network, self.config) as engine_bytes, \
                 open(engine_path, "wb") as f:
             logger.debug("Serializing engine to file: %s", engine_path)
-            f.write(engine.serialize())
+            f.write(engine_bytes)
+        assert f.closed, (
+            f"Engine file was not successfully serialized to {engine_path}"
+        )
+        # This is for a case where users want to build a pipeline
+        # chaining the engine builder and the inferencer for results.
+        return engine_bytes
+
+    def _set_timing_cache(self):
+        """Create timing cache and merge it with previous one if provided."""
+        if self.timing_cache_path:
+            timing_cache = self.config.create_timing_cache(b"")
+
+            if os.path.exists(self.timing_cache_path):
+                logger.info('Using timing cache %s', self.timing_cache_path)
+                with open(self.timing_cache_path, "rb") as f:
+                    loaded_timing_cache = self.config.create_timing_cache(f.read())
+                    timing_cache.combine(loaded_timing_cache, ignore_mismatch=False)
+
+            self.config.set_timing_cache(timing_cache, ignore_mismatch=False)
+
+    def _write_timing_cache(self):
+        """Serialize timing cache to file for future use."""
+        if self.timing_cache_path:
+            with self.config.get_timing_cache().serialize() as timing_cache, open(self.timing_cache_path, "wb") as f:
+                f.write(timing_cache)
+            assert os.path.exists(self.timing_cache_path), "Failed to write timing cache"
 
     def calibration_cache_from_dict(self, calibration_cache=None, calib_json=None):
         """Write calibration cache file for QAT model.
@@ -377,7 +593,7 @@ class EngineBuilder(ABC):
             logger.info("Tensors in scale dictionary but not in network: %s",
                         set(tensors_in_dict) - set(tensors_found))
 
-    def setLayerPrecisions(self, layerPrecisions):
+    def set_layer_precisions(self, layer_precisions):
         """Set the layer precision for specified layers.
 
         This function control per-layer precision constraints. Effective only when
@@ -389,64 +605,64 @@ class EngineBuilder(ABC):
 
             builder = EngineBuilder()
             builder.create_network()
-            layerPrecisions = {'/backbone/conv1':'fp32', '/backbone/conv2':'fp32', '/backbone/conv3':'fp32'}
-            builder.setLayerPrecisions(layerPrecisions)
+            layer_precisions = {'/backbone/conv1':'fp32', '/backbone/conv2':'fp32', '/backbone/conv3':'fp32'}
+            builder.set_layer_precisions(layer_precisions)
 
-        Besides, "*" can be used as a layerName to specify the default precision for all the unspecified layers.
+        Besides, "*" can be used as a layer_name to specify the default precision for all the unspecified layers.
         if you only need to set a few layers precision to "int8" and all the other layers to "fp32", you can do like:
 
             builder = EngineBuilder()
             builder.create_network()
-            layerPrecisions = {'*':'fp32', '/backbone/conv1':'int8', '/backbone/conv2':'int8', '/backbone/conv3':'int8'}
-            builder.setLayerPrecisions(layerPrecisions)
+            layer_precisions = {'*':'fp32', '/backbone/conv1':'int8', '/backbone/conv2':'int8', '/backbone/conv3':'int8'}
+            builder.set_layer_precisions(layer_precisions)
 
         Args:
-            layerPrecisions (dict): Dictionary mapping layers to precision. for example: {"layername":"dtype",...}, "dtype" should be in [fp32","fp16","int32","int8"]
+            layer_precisions (dict): Dictionary mapping layers to precision. for example: {"layername":"dtype",...}, "dtype" should be in [fp32","fp16","int32","int8"]
 
         Returns:
             No explicit returns.
         """
-        hasGlobalPrecision = "*" in layerPrecisions.keys()
-        globalPrecision = precision_mapping[layerPrecisions["*"]] if hasGlobalPrecision else trt.float32
-        hasLayerPrecisionSkipped = False
+        has_global_precision = "*" in layer_precisions.keys()
+        global_precision = precision_mapping[layer_precisions["*"]] if has_global_precision else trt.float32
+        has_layer_precision_skipped = False
         for layer in self.network:
 
-            layerName = layer.name
-            if layer.name in layerPrecisions.keys():
-                layer.precision = precision_mapping[layerPrecisions[layer.name]]
-                logger.info("Setting precision for layer {} to {}.".format(layerName, layer.precision))
-            elif hasGlobalPrecision:
+            layer_name = layer.name
+            if layer.name in layer_precisions.keys():
+                layer.precision = precision_mapping[layer_precisions[layer.name]]
+                logger.info("Setting precision for layer {} to {}.".format(layer_name, layer.precision))
+            elif has_global_precision:
                 # We should not set the layer precision if its default precision is INT32 or Bool.
                 if layer.precision in (trt.int32, trt.bool):
-                    hasLayerPrecisionSkipped = True
+                    has_layer_precision_skipped = True
                     logger.info("Skipped setting precision for layer {} because the \
-                                default layer precision is INT32 or Bool.".format(layerName))
+                                default layer precision is INT32 or Bool.".format(layer_name))
                     continue
 
                 #  We should not set the constant layer precision if its weights are in INT32.
                 if layer.type == trt.LayerType.CONSTANT:
-                    hasLayerPrecisionSkipped = True
+                    has_layer_precision_skipped = True
                     logger.info("Skipped setting precision for layer {} because this \
-                                constant layer has INT32 weights.".format(layerName))
+                                constant layer has INT32 weights.".format(layer_name))
                     continue
 
                 #  We should not set the layer precision if the layer operates on a shape tensor.
                 if layer.num_inputs >= 1 and layer.get_input(0).is_shape_tensor:
 
-                    hasLayerPrecisionSkipped = True
+                    has_layer_precision_skipped = True
                     logger.info("Skipped setting precision for layer {} because this layer \
-                                operates on a shape tensor.".format(layerName))
+                                operates on a shape tensor.".format(layer_name))
                     continue
 
                 if (layer.num_inputs >= 1 and layer.get_input(0).dtype == trt.int32 and layer.num_outputs >= 1 and layer.get_output(0).dtype == trt.int32):
 
-                    hasLayerPrecisionSkipped = True
+                    has_layer_precision_skipped = True
                     logger.info("Skipped setting precision for layer {} because this \
-                                layer has INT32 input and output.".format(layerName))
+                                layer has INT32 input and output.".format(layer_name))
                     continue
 
                 #  All heuristics passed. Set the layer precision.
-                layer.precision = globalPrecision
+                layer.precision = global_precision
 
-        if hasLayerPrecisionSkipped:
+        if has_layer_precision_skipped:
             logger.info("Skipped setting precisions for some layers. Check verbose logs for more details.")

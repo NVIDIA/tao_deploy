@@ -18,31 +18,8 @@ import logging
 import os
 import random
 from six.moves import xrange
-import sys
-import traceback
 
 from tqdm import tqdm
-
-try:
-    from uff.model.uff_pb2 import MetaGraph
-except ImportError:
-    print("Loading uff directly from the package source code")
-    # @scha: To disable tensorflow import issue
-    import importlib
-    import types
-    import pkgutil
-
-    package = pkgutil.get_loader("uff")
-    # Returns __init__.py path
-    src_code = package.get_filename().replace('__init__.py', 'model/uff_pb2.py')
-
-    loader = importlib.machinery.SourceFileLoader('helper', src_code)
-    helper = types.ModuleType(loader.name)
-    loader.exec_module(helper)
-    MetaGraph = helper.MetaGraph
-
-import numpy as np
-import tensorrt as trt
 
 from nvidia_tao_deploy.engine.builder import EngineBuilder
 from nvidia_tao_deploy.engine.tensorfile import TensorFile
@@ -76,16 +53,6 @@ class MRCNNEngineBuilder(EngineBuilder):
         self._output_node_names = ["generate_detections", "mask_fcn_logits/BiasAdd"]
         self._input_node_names = ["Input"]
 
-    def get_input_dims(self, model_path):
-        """Get input dimension of UFF model."""
-        metagraph = MetaGraph()
-        with open(model_path, "rb") as f:
-            metagraph.ParseFromString(f.read())
-        for node in metagraph.graphs[0].nodes:
-            if node.operation == "Input":
-                return np.array(node.fields['shape'].i_list.val)[1:]
-        raise ValueError("Input dimension is not found in the UFF metagraph.")
-
     def create_network(self, model_path, file_format="uff"):
         """Parse the ONNX graph and create the corresponding TensorRT network definition.
 
@@ -93,38 +60,9 @@ class MRCNNEngineBuilder(EngineBuilder):
             model_path: The path to the UFF/ONNX graph to load.
         """
         if file_format == "uff":
-            logger.info("Parsing UFF model")
-            self.network = self.builder.create_network()
-            self.parser = trt.UffParser()
-
-            self.set_input_output_node_names()
-
-            in_tensor_name = self._input_node_names[0]
-
-            self._input_dims = self.get_input_dims(model_path)
-            input_dict = {in_tensor_name: self._input_dims}
-            for key, value in input_dict.items():
-                if self._data_format == "channels_first":
-                    self.parser.register_input(key, value, trt.UffInputOrder(0))
-                else:
-                    self.parser.register_input(key, value, trt.UffInputOrder(1))
-            for name in self._output_node_names:
-                self.parser.register_output(name)
-            self.builder.max_batch_size = self.max_batch_size
-            try:
-                assert self.parser.parse(model_path, self.network, trt.DataType.FLOAT)
-            except AssertionError as e:
-                logger.error("Failed to parse UFF File")
-                _, _, tb = sys.exc_info()
-                traceback.print_tb(tb)  # Fixed format
-                tb_info = traceback.extract_tb(tb)
-                _, line, _, text = tb_info[-1]
-                raise AssertionError(
-                    f"UFF parsing failed on line {line} in statement {text}"
-                ) from e
+            self.parse_uff_model(model_path)
         else:
-            logger.info("Parsing UFF model")
-            raise NotImplementedError("UFF for Faster RCNN is not supported")
+            super().create_network(model_path, file_format)
 
     def set_calibrator(self,
                        inputs=None,
@@ -157,7 +95,7 @@ class MRCNNEngineBuilder(EngineBuilder):
         if not os.path.exists(calib_data_file):
             self.generate_tensor_file(calib_data_file,
                                       calib_input,
-                                      self._input_dims,
+                                      list(self._input_dims.values())[0],
                                       n_batches=n_batches,
                                       batch_size=calib_batch_size,
                                       image_mean=image_mean)

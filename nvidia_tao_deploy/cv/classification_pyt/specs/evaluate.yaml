@@ -2,9 +2,9 @@ results_dir: "???"
 evaluate:
   trt_engine: "???"
   batch_size: 8
-  topk: 1
+model:
+  head:
+    topk: [1]
 dataset:
-  data:
-    test:
-      data_prefix: "???"
-      classes: "???"
+  test_dataset:
+    images_dir: "???"

@@ -29,5 +29,5 @@ inference:
   model_path: ???
   image_dir: ???
   classmap: ???
-data_format: 'channels_last'
+data_format: 'channels_first'
 verbose: True

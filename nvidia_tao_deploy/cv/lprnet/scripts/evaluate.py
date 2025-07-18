@@ -14,16 +14,13 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 
 import os
 import json
 
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -39,7 +36,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='lprnet', mode='evaluation')
+@monitor_status(name='lprnet', mode='evaluate', hydra=False)
 def main(args):
     """LPRNet TRT evaluation."""
     # Load from proto-based spec file
@@ -67,13 +64,13 @@ def main(args):
     blank_id = len(classes)
 
     dl = LPRNetLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         image_dirs,
         label_dirs,
         classes=classes,
         batch_size=batch_size,
         max_label_length=max_label_length,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     correct = 0
     for imgs, labels in tqdm(dl, total=len(dl), desc="Producing predictions"):

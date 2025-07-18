@@ -21,11 +21,12 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 import random
+from omegaconf import ListConfig
 
 from nvidia_tao_deploy.cv.common.constants import VALID_IMAGE_EXTENSIONS
 from nvidia_tao_deploy.inferencer.preprocess_input import preprocess_input
 from nvidia_tao_deploy.cv.deformable_detr.dataloader import resize
-from nvidia_tao_deploy.cv.metric_learning_recognition.dataloader import center_crop
+from nvidia_tao_deploy.cv.ml_recog.dataloader import center_crop
 
 
 class ImageBatcher:
@@ -55,7 +56,7 @@ class ImageBatcher:
         def is_image(path):
             return os.path.isfile(path) and path.lower().endswith(VALID_IMAGE_EXTENSIONS)
 
-        if isinstance(input, list):
+        if isinstance(input, (ListConfig, list)):
             # Multiple directories
             for image_dir in input:
                 self.images.extend(str(p.resolve()) for p in Path(image_dir).glob("**/*") if p.suffix in VALID_IMAGE_EXTENSIONS)
@@ -204,6 +205,18 @@ class ImageBatcher:
             image = preprocess_input(image,
                                      data_format='channels_last',
                                      img_std=self.img_std,
+                                     mode='torch')
+            new_h, new_w, _ = image.shape
+            scale = (orig_h / new_h, orig_w / new_w)
+        elif self.preprocessor == 'RTDETR':
+            image = np.asarray(image, dtype=self.dtype)
+            orig_h, orig_w, _ = image.shape
+            image, _ = resize(image, None, size=(self.height, self.width))
+
+            image = preprocess_input(image,
+                                     data_format='channels_last',
+                                     img_std=self.img_std,
+                                     img_mean=self.img_mean,
                                      mode='torch')
             new_h, new_w, _ = image.shape
             scale = (orig_h / new_h, orig_w / new_w)

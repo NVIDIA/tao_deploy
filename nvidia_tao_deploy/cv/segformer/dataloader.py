@@ -14,10 +14,6 @@
 
 """Segformer loader."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from PIL import Image
 import logging
 import numpy as np
@@ -39,6 +35,8 @@ class SegformerLoader(UNetLoader):
                  pad_val=0,
                  image_mean=None,
                  image_std=None,
+                 target_classes=None,
+                 label_transform=None,
                  **kwargs):
         """Init.
 
@@ -47,12 +45,16 @@ class SegformerLoader(UNetLoader):
             pad_val (int): Per-channel pixel value to pad for input image.
             image_mean (list): image mean.
             image_std (list): image standard deviation.
+            target_classes (list): List of TargetClass instances.
+            label_transform (str): Label transform type, "norm" or others, norm means divide by 255.
         """
         super().__init__(**kwargs)
         self.pad_val = pad_val
         self.keep_ratio = keep_ratio
         self.image_mean = image_mean
         self.image_std = image_std
+        self.target_classes = target_classes
+        self.label_transform = label_transform
 
     def preprocessing(self, image, label):
         """The image preprocessor loads an image from disk and prepares it as needed for batching.
@@ -91,8 +93,13 @@ class SegformerLoader(UNetLoader):
             label = label.resize((self.width, self.height), Image.BILINEAR)
             label = np.asarray(label)
 
-        if self.input_image_type == "grayscale":
+        # Convert label to train id
+        if self.label_transform == "norm":
             label = label / 255
-            label = np.where(label > 0.5, 1, 0)
+
+        if self.target_classes:
+            for target_class in self.target_classes:
+                label[label == target_class.label_id] = target_class.train_id
+
         label = label.astype(np.uint8)
         return image, label

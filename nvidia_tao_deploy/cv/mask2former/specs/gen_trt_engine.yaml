@@ -1,11 +1,8 @@
-results_dir: "/tao_experiments/mask2former_coco_effvit/"
+results_dir: "???"
 gen_trt_engine:
   gpu_id: 0
-  onnx_file: "/tao_experiments/mask2former_swinl/train/model_epoch=129-v1.onnx"
-  trt_engine: "/tao_experiments/mask2former_swinl/train/model_epoch=129-v1.fp16.engine"
-  input_channel: 3
-  input_width: 640
-  input_height: 640
+  onnx_file: "???"
+  trt_engine: "???"
   tensorrt:
     data_type: fp16
     workspace_size: 1024

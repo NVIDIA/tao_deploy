@@ -2,10 +2,6 @@
 
 """TAO Deploy Clustering Config."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from nvidia_tao_deploy.cv.detectnet_v2.proto.postprocessing_config_pb2 import ClusteringConfig as ClusteringProto
 
 CLUSTERING_ALGORITHM = {

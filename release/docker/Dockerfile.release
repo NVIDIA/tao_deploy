@@ -1,10 +1,4 @@
-FROM nvcr.io/nvidia/tao/tao-toolkit:5.5.0-deploy-base
-
-# Installing the TAO Toolkit source code packages.
-WORKDIR /opt/nvidia
-COPY dist/*.whl /opt/nvidia/wheels/
-RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
-    && rm *.whl
+FROM nvcr.io/nvstaging/tao/tao_deploy_base_image@sha256:215081c93b15f1e033e18290d19f02877824453ac5b6f892b29f86c182299596
 
 # NGC Security scan related fixes.
 # Low-level packages in apt are updated to resolve published security vulnerabilities ASAP
@@ -22,14 +16,33 @@ RUN apt-get update && \
 RUN rm -rf /opt/nvidia/entrypoint.d/*.txt
 COPY release/docker/entrypoint.d/* /opt/nvidia/entrypoint.d/
 
-RUN python -m pip uninstall graphviz -y
+# Installing TAO-Core
+COPY tao-core tao-core
+RUN cd tao-core && bash release/python/build_wheel.sh && \
+    find dist/ -name "nvidia_tao_core*.whl" -type f | xargs -n 1 pip install && \
+    cp nvidia_tao_core/microservices/nginx.conf /etc/nginx/ && \
+    cd .. && rm -rf tao-core
 
-ENV NVIDIA_PRODUCT_NAME "TAO Toolkit"
-ENV TAO_TOOLKIT_VERSION="5.5.0"
+# Installing the TAO Toolkit source code packages.
+WORKDIR /opt/nvidia
+COPY dist/*.whl /opt/nvidia/wheels/
+RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
+    && rm *.whl
+
+ENV NVIDIA_PRODUCT_NAME="TAO Toolkit"
+ENV TAO_TOOLKIT_VERSION="6.0.0"
 ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
 ENV TAO_TELEMETRY_SERVER="https://api.tao.ngc.nvidia.com"
 
-# Microservices entrypoint
-ENV FLASK_APP=/usr/local/lib/python3.10/dist-packages/nvidia_tao_deploy/api/app.py 
+EXPOSE 8000
 
-CMD [ "/bin/bash" ]
+# Microservices entrypoint
+ENV FLASK_APP=nvidia_tao_core.microservices.app
+
+ENV RUN_CLI=0
+
+CMD if [ "$RUN_CLI" = "1" ]; then \
+        /bin/bash; \
+    else \
+        /bin/bash $(get-microservice-script); \
+    fi

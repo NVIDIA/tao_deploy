@@ -14,14 +14,11 @@
 
 """Standalone TensorRT evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import os
 import json
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 import logging
@@ -39,12 +36,12 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='yolo_v3', mode='evaluation')
+@monitor_status(name='yolo_v3', mode='evaluate', hydra=False)
 def main(args):
     """YOLOv3 TRT evaluation."""
     trt_infer = YOLOv3Inferencer(args.model_path, batch_size=args.batch_size)
 
-    c, h, w = trt_infer._input_shape
+    c, h, w = trt_infer.input_tensors[0].shape
 
     # Load from proto-based spec file
     es = load_proto(args.experiment_spec)
@@ -88,7 +85,7 @@ def main(args):
         exclude_difficult=True,
         batch_size=batch_size,
         image_mean=img_mean,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     eval_metric = KITTIMetric(n_classes=len(dl.classes),
                               matching_iou_threshold=matching_iou_threshold,

@@ -14,16 +14,13 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 
 import os
 import pandas as pd
 import numpy as np
+import tensorrt as trt
 from tqdm.auto import tqdm
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
@@ -38,7 +35,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='multitask_classification', mode='inference')
+@monitor_status(name='multitask_classification', mode='inference', hydra=False)
 def main(args):
     """Multitask Classification TRT inference."""
     es = load_proto(args.experiment_spec)
@@ -55,19 +52,19 @@ def main(args):
 
     trt_infer = MClassificationInferencer(args.model_path, batch_size=batch_size)
 
-    if trt_infer._input_shape[0] in [1, 3]:
+    if trt_infer.input_tensors[0].shape[0] in [1, 3]:
         data_format = "channels_first"
     else:
         data_format = "channels_last"
 
     dl = MClassificationLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         [image_dirs],
         es.dataset_config.val_csv_path,
         data_format=data_format,
         interpolation_method=interpolation_method,
         batch_size=batch_size,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     if args.results_dir is None:
         results_dir = os.path.dirname(args.model_path)

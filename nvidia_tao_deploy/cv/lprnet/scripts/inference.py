@@ -14,15 +14,12 @@
 
 """Standalone TensorRT inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import logging
 
 import os
 import numpy as np
+import tensorrt as trt
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.lprnet.inferencer import LPRNetInferencer
@@ -37,7 +34,7 @@ logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %
 logger = logging.getLogger(__name__)
 
 
-@monitor_status(name='lprnet', mode='inference')
+@monitor_status(name='lprnet', mode='inference', hydra=False)
 def main(args):
     """LPRNet TRT inference."""
     # Load from proto-based spec file
@@ -68,14 +65,14 @@ def main(args):
     blank_id = len(classes)
 
     dl = LPRNetLoader(
-        trt_infer._input_shape,
+        trt_infer.input_tensors[0].shape,
         image_dirs,
         [None],
         classes=classes,
         is_inference=True,
         batch_size=batch_size,
         max_label_length=max_label_length,
-        dtype=trt_infer.inputs[0].host.dtype)
+        dtype=trt.nptype(trt_infer.input_tensors[0].tensor_dtype))
 
     for i, (imgs, _) in enumerate(dl):
         y_pred = trt_infer.infer(imgs)

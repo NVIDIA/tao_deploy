@@ -17,11 +17,10 @@
 import logging
 import os
 import sys
-import onnx
 
 import tensorrt as trt
 
-from nvidia_tao_deploy.engine.builder import EngineBuilder
+from nvidia_tao_deploy.engine.builder import TRT_8_API, EngineBuilder
 from nvidia_tao_deploy.engine.calibrator import EngineCalibrator
 from nvidia_tao_deploy.utils.image_batcher import ImageBatcher
 
@@ -37,7 +36,6 @@ class OCDNetEngineBuilder(EngineBuilder):
         self,
         width,
         height,
-        img_mode,
         batch_size=None,
         data_format="channels_first",
         **kwargs
@@ -51,14 +49,6 @@ class OCDNetEngineBuilder(EngineBuilder):
         self._data_format = data_format
         self.width = width
         self.height = height
-        self.img_mode = img_mode
-
-    def get_onnx_input_dims(self, model_path):
-        """Get input dimension of ONNX model."""
-        onnx_model = onnx.load(model_path)
-        onnx_inputs = onnx_model.graph.input
-        for i, inputs in enumerate(onnx_inputs):
-            return [i.dim_value for i in inputs.type.tensor_type.shape.dim][:]
 
     def create_network(self, model_path, file_format="onnx"):
         """Parse the UFF/ONNX graph and create the corresponding TensorRT network definition.
@@ -68,11 +58,9 @@ class OCDNetEngineBuilder(EngineBuilder):
             file_format: The file format of the decrypted etlt file (default: onnx).
         """
         if file_format == "onnx":
-            logger.info("Parsing ONNX model")
-            self._input_dims = self.get_onnx_input_dims(model_path)
-            self.batch_size = self._input_dims[0]
-
-            network_flags = (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+            network_flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
+            if TRT_8_API:
+                network_flags = network_flags | (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_PRECISION))
 
             self.network = self.builder.create_network(network_flags)
             self.parser = trt.OnnxParser(self.network, self.trt_logger)
@@ -87,32 +75,54 @@ class OCDNetEngineBuilder(EngineBuilder):
             inputs = [self.network.get_input(i) for i in range(self.network.num_inputs)]
             outputs = [self.network.get_output(i) for i in range(self.network.num_outputs)]
 
+            logger.info("Parsing ONNX model")
+            # input_dims are a dict {name: shape}
+            input_dims = self.get_onnx_input_dims(inputs)
+            batch_sizes = {v[0] for v in input_dims.values()}
+            assert len(batch_sizes) == 1, (
+                "All tensors should have the same batch size."
+            )
+            self.batch_size = list(batch_sizes)[0]
+            # self._input_dims = {}
+            # for k, v in input_dims.items():
+            #     self._input_dims[k] = v[1:]
+
             logger.info("Network Description")
-            for input in inputs: # noqa pylint: disable=W0622
-                logger.info("Input '%s' with shape %s and dtype %s", input.name, input.shape, input.dtype)
+            opt_profile = self.builder.create_optimization_profile()
+            for model_input in inputs: # noqa pylint: disable=W0622
+                logger.info("Input '%s' with shape %s and dtype %s", model_input.name, model_input.shape, model_input.dtype)
+                input_shape = model_input.shape
+                input_name = model_input.name
+                if self.batch_size <= 0:
+                    # @seanf: for some reason, the .onnx model in scratch space has -1 for width and height,
+                    # which is why we take in these vals upon construction
+                    real_shape_min = (self.min_batch_size, input_shape[1],
+                                      self.height, self.width)
+                    real_shape_opt = (self.opt_batch_size, input_shape[1],
+                                      self.height, self.width)
+                    real_shape_max = (self.max_batch_size, input_shape[1],
+                                      self.height, self.width)
+                    opt_profile.set_shape(input=input_name,
+                                          min=real_shape_min,
+                                          opt=real_shape_opt,
+                                          max=real_shape_max)
+                else:
+                    shape = (self.batch_size, input_shape[1], self.height, self.width)
+                    opt_profile.set_shape(
+                        input=input_name,
+                        min=shape,
+                        opt=shape,
+                        max=shape
+                    )
+
+            self.config.add_optimization_profile(opt_profile)
+            self.config.set_calibration_profile(opt_profile)
+
             for output in outputs:
                 logger.info("Output '%s' with shape %s and dtype %s", output.name, output.shape, output.dtype)
 
-            if self.batch_size <= 0:  # dynamic batch size
-                logger.info("dynamic batch size handling")
-                opt_profile = self.builder.create_optimization_profile()
-                model_input = self.network.get_input(0)
-                input_shape = model_input.shape
-                input_name = model_input.name
-                real_shape_min = (self.min_batch_size, input_shape[1],
-                                  self.height, self.width)
-                real_shape_opt = (self.opt_batch_size, input_shape[1],
-                                  self.height, self.width)
-                real_shape_max = (self.max_batch_size, input_shape[1],
-                                  self.height, self.width)
-                opt_profile.set_shape(input=input_name,
-                                      min=real_shape_min,
-                                      opt=real_shape_opt,
-                                      max=real_shape_max)
-                self.config.add_optimization_profile(opt_profile)
         else:
-            logger.info("Parsing UFF model")
-            raise NotImplementedError("UFF for OCDNet is not supported")
+            raise NotImplementedError(f"{file_format.capitalize()} backend is not supported for D-DETR.")
 
     def set_calibrator(self,
                        inputs=None,

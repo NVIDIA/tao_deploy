@@ -34,5 +34,5 @@ gen_trt_engine:
   tensorrt:
     data_type: 'int8' 
 encryption_key: 'nvidia_tlt'
-data_format: 'channels_last'
+data_format: 'channel_last'
 results_dir: '/home/scratch.p3/sean/tao_deploy_experiments/efficientdet_tf2/'

@@ -12,7 +12,7 @@ fi
 export NV_TAO_DEPLOY_TOP="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 function tao_deploy {
-   python $NV_TAO_DEPLOY_TOP/runner/tao_deploy.py "$@"
+   PYTHONPATH=/workspace/tao-deploy/tao-core:$PYTHONPATH python $NV_TAO_DEPLOY_TOP/runner/tao_deploy.py "$@"
 }
 export -f tao_deploy
 

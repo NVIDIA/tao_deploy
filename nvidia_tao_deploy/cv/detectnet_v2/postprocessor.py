@@ -14,10 +14,6 @@
 
 """Post processing handler for TLT DetectNet_v2 models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import operator
 from time import time

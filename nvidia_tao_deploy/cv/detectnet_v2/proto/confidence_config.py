@@ -14,10 +14,6 @@
 
 """Confidence config class that holds parameters for postprocessing confidence."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from nvidia_tao_deploy.cv.detectnet_v2.proto.postprocessing_config_pb2 import ConfidenceConfig as ConfidenceProto
 
 

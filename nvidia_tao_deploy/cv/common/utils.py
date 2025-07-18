@@ -1,4 +1,4 @@
-# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2024, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,10 @@ import logging
 import os
 logger = logging.getLogger(__name__)
 
+TASKS = {"gen_trt_engine": "gen_trt_engine",
+         "evaluate": "trt_evaluate",
+         "inference": "trt_inference"}
+
 
 def update_results_dir(cfg, task):
     """Update global results_dir based on task.results_dir.
@@ -26,14 +30,17 @@ def update_results_dir(cfg, task):
 
     Args:
         cfg (Hydra config): Config object loaded by Hydra
-        task (str): TAO pipeline name
+        task (str): TAO pipeline name (gen_trt_engine, evaluate, inference)
     Return:
         Updated cfg
     """
     if cfg[task]['results_dir']:
-        cfg.results_dir = cfg[task]['results_dir']
+        cfg['results_dir'] = cfg[task]['results_dir']
+    elif cfg['results_dir']:
+        cfg['results_dir'] = os.path.join(cfg['results_dir'], TASKS[task])
+        cfg[task]['results_dir'] = cfg['results_dir']
     else:
-        cfg.results_dir = os.path.join(cfg.results_dir, task)
-        cfg[task]['results_dir'] = cfg.results_dir
-    logger.info(f"{task.capitalize()} results will be saved at: %s", cfg.results_dir)
+        raise ValueError(f"You need to set at least one of following fields: results_dir, {task}.results_dir")
+    print(f"{TASKS[task].capitalize()} results will be saved at: {cfg['results_dir']}")
+
     return cfg
