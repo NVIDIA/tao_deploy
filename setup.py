@@ -54,7 +54,7 @@ setuptools.setup(
         'Environment :: Console',
         'License :: Other/Proprietary License',
         'Natural Language :: English',
-        'Operating System :: POSIX',
+        'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',

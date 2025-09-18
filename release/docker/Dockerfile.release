@@ -23,6 +23,10 @@ RUN cd tao-core && bash release/python/build_wheel.sh && \
     cp nvidia_tao_core/microservices/nginx.conf /etc/nginx/ && \
     cd .. && rm -rf tao-core
 
+## Install mongodump and mongorestore
+RUN apt update && wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-$(uname -m)-100.10.0.deb ## Update this when upgrading from Ubuntu 22.04
+RUN apt install ./mongodb-database-tools-*-100.10.0.deb && rm -f mongodb-database-tools-*.deb
+
 # Installing the TAO Toolkit source code packages.
 WORKDIR /opt/nvidia
 COPY dist/*.whl /opt/nvidia/wheels/
@@ -30,7 +34,7 @@ RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
     && rm *.whl
 
 ENV NVIDIA_PRODUCT_NAME="TAO Toolkit"
-ENV TAO_TOOLKIT_VERSION="6.0.0"
+ENV TAO_TOOLKIT_VERSION="6.25.9"
 ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
 ENV TAO_TELEMETRY_SERVER="https://api.tao.ngc.nvidia.com"
 
