@@ -34,7 +34,7 @@ RUN cd wheels && ls ./*.whl|xargs -I'{}' python -m pip install '{}' \
     && rm *.whl
 
 ENV NVIDIA_PRODUCT_NAME="TAO Toolkit"
-ENV TAO_TOOLKIT_VERSION="6.25.9"
+ENV TAO_TOOLKIT_VERSION="6.25.10"
 ENV NVIDIA_TAO_TOOLKIT_VERSION="${TAO_TOOLKIT_VERSION}-Deploy"
 ENV TAO_TELEMETRY_SERVER="https://api.tao.ngc.nvidia.com"
 

@@ -1,0 +1,42 @@
+results_dir: /results/deploy_stereo/
+dataset:
+  dataset_name: StereoDataset
+  infer_dataset:
+    data_sources:
+      - dataset_name: GenericDataset
+        data_file: /data/depth_net/annotations_test.txt
+    batch_size: 2
+    workers: 4
+  test_dataset:
+    data_sources:
+      - dataset_name: GenericDataset
+        data_file: /data/depth_net/annotations_test.txt
+    batch_size: 4
+    workers: 4
+inference:
+  trt_engine: /results/deploy_stereo/gen_trt_engine/deployable_foundationstereo_small_v1.0.engine
+  input_width: 736
+  input_height: 320
+evaluate:
+  trt_engine: /results/deploy_stereo/gen_trt_engine/deployable_foundationstereo_small_v1.0.engine
+  input_width: 736
+  input_height: 320
+gen_trt_engine:
+  # GPU configuration
+  gpu_id: 0  # GPU device ID to use for TRT engine generation
+
+  # Model configuration
+  onnx_file: /models/deployable_foundationstereo_small_v1.0.onnx
+  trt_engine: /results/deploy_stereo/gen_trt_engine/deployable_foundationstereo_small_v1.0.engine
+  batch_size: -1  # -1 for dynamic batch size
+
+  # TensorRT configuration
+  tensorrt:
+    data_type: "fp16"  # Data type for TRT engine (fp32, fp16, or int8)
+    workspace_size: 1024  # Workspace size in MB
+    min_batch_size: 1  # Minimum batch size for dynamic batching
+    opt_batch_size: 2  # Optimal batch size for dynamic batching
+    max_batch_size: 4  # Maximum batch size for dynamic batching
+
+  # Verbose logging
+  verbose: true  # Whether to enable verbose logging during TRT engine generation

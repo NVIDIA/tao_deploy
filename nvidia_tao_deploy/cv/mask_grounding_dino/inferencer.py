@@ -18,6 +18,7 @@ from nvidia_tao_deploy.inferencer.trt_inferencer import TRTInferencer
 from nvidia_tao_deploy.inferencer.utils import do_inference
 import numpy as np
 from PIL import ImageDraw, Image
+import random
 
 
 class MaskGDINOInferencer(TRTInferencer):
@@ -91,6 +92,23 @@ class MaskGDINOInferencer(TRTInferencer):
             color_map (dict): key is the class name and value is the color to be used
         """
         draw = ImageDraw.Draw(img)
+        # Create random color map if not provided
+        if not color_map:
+            # Get unique class names from valid predictions
+            unique_classes = set()
+            for i in prediction:
+                if int(i[0]) in class_mapping and float(i[1]) >= threshold:
+                    unique_classes.add(class_mapping[int(i[0])])
+
+            # Generate random colors for each unique class
+            color_map = {}
+            for cls_name in unique_classes:
+                color_map[cls_name] = (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255)
+                )
+
         W, H = img.size
         label_strings = []
         for j, i in enumerate(prediction):

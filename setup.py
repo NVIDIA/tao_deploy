@@ -77,6 +77,7 @@ setuptools.setup(
             'classification_tf1=nvidia_tao_deploy.cv.classification_tf1.entrypoint.classification_tf1:main',
             'classification_tf2=nvidia_tao_deploy.cv.classification_tf2.entrypoint.classification_tf2:main',
             'deformable_detr=nvidia_tao_deploy.cv.deformable_detr.entrypoint.deformable_detr:main',
+            'depth_net=nvidia_tao_deploy.cv.depth_net.entrypoint.depth_net:main',
             'detectnet_v2=nvidia_tao_deploy.cv.detectnet_v2.entrypoint.detectnet_v2:main',
             'dino=nvidia_tao_deploy.cv.dino.entrypoint.dino:main',
             'dssd=nvidia_tao_deploy.cv.ssd.entrypoint.ssd:main',

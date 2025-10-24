@@ -16,3 +16,4 @@
 
 # List of valid image extensions
 VALID_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".JPEG", ".JPG", ".PNG")
+VALID_GT_EXTENSIONS = (".png", ".pfm", ".txt", ".json")

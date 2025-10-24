@@ -23,8 +23,9 @@ from PIL import Image
 import random
 from omegaconf import ListConfig
 
-from nvidia_tao_deploy.cv.common.constants import VALID_IMAGE_EXTENSIONS
+from nvidia_tao_deploy.cv.common.constants import VALID_IMAGE_EXTENSIONS, VALID_GT_EXTENSIONS
 from nvidia_tao_deploy.inferencer.preprocess_input import preprocess_input
+from nvidia_tao_deploy.cv.depth_net.utils import read_gt_depth
 from nvidia_tao_deploy.cv.deformable_detr.dataloader import resize
 from nvidia_tao_deploy.cv.ml_recog.dataloader import center_crop
 
@@ -32,10 +33,13 @@ from nvidia_tao_deploy.cv.ml_recog.dataloader import center_crop
 class ImageBatcher:
     """Creates batches of pre-processed images."""
 
-    def __init__(self, input, shape, dtype, # noqa pylint: disable=W0622
+    def __init__(self, input, shape, dtype,  # noqa pylint: disable=W0622
+                 right_input=None,
+                 gt_input=None,
                  max_num_images=None, exact_batches=False, preprocessor="EfficientDet",
                  img_std=[0.229, 0.224, 0.225],
-                 img_mean=[0.485, 0.456, 0.406]):
+                 img_mean=[0.485, 0.456, 0.406],
+                 evaluation=False):
         """Initialize.
 
         Args:
@@ -50,8 +54,12 @@ class ImageBatcher:
             preprocessor: Set the preprocessor to use, depending on which network is being used.
             img_std: Set img std for DDETR use case
             img_mean: Set img mean for DDETR use case
+            evaluation: Set to True for evaluation mode.
         """
         self.images = []
+        self.right_images = []
+        self.gt_images = []
+        self.evaluation = evaluation
 
         def is_image(path):
             return os.path.isfile(path) and path.lower().endswith(VALID_IMAGE_EXTENSIONS)
@@ -60,8 +68,9 @@ class ImageBatcher:
             # Multiple directories
             for image_dir in input:
                 self.images.extend(str(p.resolve()) for p in Path(image_dir).glob("**/*") if p.suffix in VALID_IMAGE_EXTENSIONS)
-            # Shuffle so that we sample uniformly from the sequence
-            random.shuffle(self.images)
+            if right_input is None and gt_input is None and not self.evaluation:
+                # Shuffle so that we sample uniformly from the sequence
+                random.shuffle(self.images)
         else:
             if os.path.isdir(input):
                 self.images = [str(p.resolve()) for p in Path(input).glob("**/*") if p.suffix in VALID_IMAGE_EXTENSIONS]
@@ -69,6 +78,42 @@ class ImageBatcher:
             elif os.path.isfile(input):
                 if is_image(input):
                     self.images.append(input)
+
+        if right_input is not None:
+            if isinstance(right_input, (ListConfig, list)):
+                # Multiple directories
+                for image_dir in right_input:
+                    self.right_images.extend(str(p.resolve()) for p in Path(image_dir).glob("**/*") if p.suffix in VALID_IMAGE_EXTENSIONS)
+            else:
+                if os.path.isdir(right_input):
+                    self.right_images = [str(p.resolve()) for p in Path(right_input).glob("**/*") if p.suffix in VALID_IMAGE_EXTENSIONS]
+                    self.right_images.sort()
+                elif os.path.isfile(right_input):
+                    if is_image(right_input):
+                        self.right_images.append(right_input)
+            # raise error for different number of images and right images
+            if len(self.right_images) != len(self.images):
+                raise ValueError(f"Number of right images ({len(self.right_images)}) does not match number of images ({len(self.images)})")
+
+        if gt_input is not None and self.evaluation:
+            if isinstance(gt_input, (ListConfig, list)):
+                for image_dir in gt_input:
+                    self.gt_images.extend(str(p.resolve()) for p in Path(image_dir).glob("**/*") if p.suffix in VALID_GT_EXTENSIONS)
+            else:
+                if os.path.isdir(gt_input):
+                    self.gt_images = [str(p.resolve()) for p in Path(gt_input).glob("**/*") if p.suffix in VALID_GT_EXTENSIONS]
+                    self.gt_images.sort()
+                elif os.path.isfile(gt_input):
+                    if is_image(gt_input):
+                        self.gt_images.append(gt_input)
+
+            # raise error for different number of images and ground truth images
+            if len(self.gt_images) != len(self.images):
+                raise ValueError(f"Number of ground truth images ({len(self.gt_images)}) does not match number of images ({len(self.images)})")
+
+            if len(self.gt_images) == 0:
+                raise ValueError(f"No ground truth images found at the given path {gt_input}")
+
         self.num_images = len(self.images)
         if self.num_images < 1:
             print(f"No valid {'/'.join(VALID_IMAGE_EXTENSIONS)} images found in {input}")
@@ -105,13 +150,26 @@ class ImageBatcher:
             raise ValueError("Not enough images to create batches")
         self.images = self.images[0:self.num_images]
 
+        if right_input is not None:
+            self.right_images = self.right_images[0:self.num_images]
+
+        if gt_input is not None and self.evaluation:
+            self.gt_images = self.gt_images[0:self.num_images]
+
         # Subdivide the list of images into batches
         self.num_batches = 1 + int((self.num_images - 1) / self.batch_size)
         self.batches = []
+        self.gt_batches = []
         for i in range(self.num_batches):
             start = i * self.batch_size
             end = min(start + self.batch_size, self.num_images)
-            self.batches.append(self.images[start:end])
+            if right_input is not None:
+                self.batches.append((self.images[start:end], self.right_images[start:end]))
+            else:
+                self.batches.append(self.images[start:end])
+
+            if self.evaluation:
+                self.gt_batches.append(self.gt_images[start:end])
 
         # Indices
         self.image_index = 0
@@ -239,12 +297,29 @@ class ImageBatcher:
             image = image.convert("L")
             image = image.resize((self.width, self.height), resample=Image.BICUBIC)
             image = (np.array(image, dtype=self.dtype) / 255.0 - 0.5) / 0.5
+        elif self.preprocessor == "DepthNet":
+            image = np.asarray(image, dtype=self.dtype)
+            orig_h, orig_w, _ = image.shape
+            image, _ = resize(image, None, size=(self.height, self.width))
+            image = preprocess_input(
+                image,
+                data_format='channels_first',
+                img_mean=self.img_mean,
+                img_std=self.img_std,
+                mode='torch')
+            new_h, new_w, _ = image.shape
+            scale = (orig_h / new_h, orig_w / new_w)
         else:
             raise NotImplementedError(f"Preprocessing method {self.preprocessor} not supported")
         if self.format == "channels_first":
             if self.channel != 1:
                 image = np.transpose(image, (2, 0, 1))
         return image, scale
+
+    def preprocess_depth(self, depth_path):
+        """Preprocess the depth image."""
+        depth = read_gt_depth(depth_path)
+        return depth
 
     def get_batch(self):
         """Retrieve the batches.
@@ -259,11 +334,36 @@ class ImageBatcher:
             a batch of images, the list of paths to the images loaded within this batch,
             and the list of resize scales for each image in the batch.
         """
-        for i, batch_images in enumerate(self.batches):
-            batch_data = np.zeros(self.shape, dtype=self.dtype)
-            batch_scales = [None] * len(batch_images)
-            for i, image in enumerate(batch_images):
-                self.image_index += 1
-                batch_data[i], batch_scales[i] = self.preprocess_image(image)
-            self.batch_index += 1
-            yield batch_data, batch_images, batch_scales
+        for index, batch_images in enumerate(self.batches):
+            # stereo input - input image is tuple (left, right)
+            if isinstance(batch_images, tuple):
+                left_images, right_images = batch_images
+                batch_data = {"left_image": np.zeros(self.shape, dtype=self.dtype), "right_image": np.zeros(self.shape, dtype=self.dtype)}
+                batch_scales = [None] * len(left_images)
+                batch_gt = []
+                for i, (left_image, right_image) in enumerate(zip(left_images, right_images)):
+                    self.image_index += 1
+                    batch_data["left_image"][i], batch_scales[i] = self.preprocess_image(left_image)
+                    batch_data["right_image"][i], _ = self.preprocess_image(right_image)
+                    if self.evaluation:
+                        batch_gt.append(read_gt_depth(self.gt_batches[index][i]))
+                self.batch_index += 1
+                if self.evaluation:
+                    yield batch_data, left_images, batch_scales, np.array(batch_gt)
+                else:
+                    yield batch_data, left_images, batch_scales
+            else:
+                # mono input
+                batch_data = np.zeros(self.shape, dtype=self.dtype)
+                batch_gt = []
+                batch_scales = [None] * len(batch_images)
+                for i, image in enumerate(batch_images):
+                    self.image_index += 1
+                    batch_data[i], batch_scales[i] = self.preprocess_image(image)
+                    if self.evaluation:
+                        batch_gt.append(read_gt_depth(self.gt_batches[index][i]))
+                self.batch_index += 1
+                if self.evaluation:
+                    yield batch_data, batch_images, batch_scales, np.array(batch_gt)
+                else:
+                    yield batch_data, batch_images, batch_scales
