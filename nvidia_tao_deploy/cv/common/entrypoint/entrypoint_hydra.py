@@ -231,6 +231,7 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
 
     run_command = f"bash -c '{env_variables} {task_command}'"
     process_passed = False
+    user_error = False
     start = time()
     progress_bar_pattern = re.compile(r"Epoch \d+: \s*\d+%|\[.*\]")
 
@@ -277,9 +278,18 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
     except (KeyboardInterrupt, SystemExit) as e:
         logging.info("Command was interrupted due to {}".format(str(e)))
         process_passed = True
-    except subprocess.CalledProcessError as e:
-        if e.output is not None:
-            logging.info(e.output)
+    except Exception as e:
+        # Check if the exception is a user configuration error
+        error_message = str(e)
+        user_error = any(keyword in error_message for keyword in [
+            "Configuration error",
+            "Feature not implemented",
+            "Parameter validation error",
+            "File system error",
+            "Schema validation error"
+        ])
+
+        logging.exception(e)
         process_passed = False
 
     end = time()
@@ -297,6 +307,7 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
             num_gpus=num_gpus,
             time_lapsed=time_lapsed,
             pass_status=process_passed,
+            user_error=user_error
         )
     except Exception as e:
         logger.warning(

@@ -92,6 +92,21 @@ class DDETRInferencer(TRTInferencer):
         """
         draw = ImageDraw.Draw(img)
 
+        if color_map is None:
+            color_map = {}
+            for i in prediction:
+                if int(i[0]) in class_mapping and float(i[1]) >= threshold:
+                    cls_name = class_mapping[int(i[0])]
+                    if cls_name not in color_map:
+                        # Use hash of class name for deterministic colors
+                        hash_val = hash(cls_name)
+                        color = (
+                            (hash_val & 0xFF0000) >> 16,      # R
+                            (hash_val & 0x00FF00) >> 8,       # G
+                            (hash_val & 0x0000FF)             # B
+                        )
+                        color_map[cls_name] = color
+
         label_strings = []
         for i in prediction:
             if int(i[0]) not in class_mapping:

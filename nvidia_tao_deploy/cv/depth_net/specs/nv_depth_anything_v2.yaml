@@ -1,0 +1,43 @@
+results_dir: /results/deploy_mono/
+dataset:
+  dataset_name: MonoDataset
+  infer_dataset:
+    data_sources:
+      - dataset_name: RelativeMonoDataset
+        data_file: /data/depth_net/annotations_test.txt
+    batch_size: 4
+    workers: 4
+  test_dataset:
+    data_sources:
+      - dataset_name: RelativeMonoDataset
+        data_file: /data/depth_net/annotations_test.txt
+    batch_size: 4
+    workers: 4
+inference:
+  trt_engine: /results/deploy_mono/gen_trt_engine/nv_releative_depth_anything_v1.engine
+  input_width: 924
+  input_height: 518
+evaluate:
+  trt_engine: /results/deploy_mono/gen_trt_engine/nv_releative_depth_anything_v1.engine
+  input_width: 924
+  input_height: 518
+
+gen_trt_engine:
+  # GPU configuration
+  gpu_id: 0  # GPU device ID to use for TRT engine generation
+
+  # Model configuration
+  onnx_file: /models/nv_releative_depth_anything_v1.onnx  # Path to the ONNX model file
+  trt_engine: /results/deploy_mono/gen_trt_engine/nv_releative_depth_anything_v1.engine  # Output path for the TRT engine
+  batch_size: -1  # -1 for dynamic batch size
+
+  # TensorRT configuration
+  tensorrt:
+    data_type: "fp32"  # Data type for TRT engine (fp32, fp16, or int8)
+    workspace_size: 1024  # Workspace size in MB
+    min_batch_size: 1  # Minimum batch size for dynamic batching
+    opt_batch_size: 4  # Optimal batch size for dynamic batching
+    max_batch_size: 8  # Maximum batch size for dynamic batching
+
+  # Verbose logging
+  verbose: true  # Whether to enable verbose logging during TRT engine generation
