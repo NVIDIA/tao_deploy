@@ -25,6 +25,7 @@ pipreqs==0.5.0
 pyarmor==8.5.8  # 8.5.8 is version nvidia-eff wheels use
 pyclipper==1.3.0.post6
 pycocotools==2.0.8
+pycuda==2025.1.2
 pydocstyle==6.3.0
 pyflakes==3.2.0
 PyInstaller==6.11.1

@@ -1,0 +1,13 @@
+results_dir: "???"
+gen_trt_engine:
+  gpu_id: 0
+  onnx_file: "???"
+  trt_engine: "???"
+  batch_size: 1
+  verbose: true
+  tensorrt:
+    data_type: fp16
+    workspace_size: 8192 #MB
+    max_batch_size: 1
+    opt_batch_size: 1
+    min_batch_size: 1

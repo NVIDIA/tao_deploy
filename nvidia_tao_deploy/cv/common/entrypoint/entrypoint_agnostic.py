@@ -27,7 +27,9 @@ def get_subtask_list(model):
         scripts = importlib.import_module(f"nvidia_tao_deploy.cv.{model}.scripts")
     except ModuleNotFoundError as e:
         raise ModuleNotFoundError(f"{model} is not a supported TAO model") from e
-    return get_subtasks(scripts)
+
+    subtasks = get_subtasks(scripts)
+    return subtasks
 
 
 def main():
@@ -49,28 +51,49 @@ def main():
         "-e",
         "--experiment_spec_file",
         help="Path to the experiment spec file.",
-        required=True,
+        required=False,
         default=None,
     )
-
-    # Original flow got subtasks from model name, used that to limit choices in argparser
-    # Now, since we only get model name *after* argparser, we have to limit choices after
+    parser.add_argument(
+        "-m",
+        "--model_name",
+        help="Name of the model (required for default_specs subtask).",
+        required=False,
+        default=None,
+    )
 
     # Parse the arguments.
     args, unknown_args = parser.parse_known_args()
 
-    # Getting the model name from the specfile
+    subtask = vars(args)["subtask"]
+
+    # Handle default_specs separately - it doesn't require a spec file
+    if subtask == "default_specs":
+        model = vars(args).get("model_name")
+        if not model:
+            raise ValueError("The 'default_specs' subtask requires --model_name (-m) argument")
+
+        # Get subtasks including default_specs
+        subtasks = get_subtask_list(model)
+
+        # Launch directly with the model name
+        launch(vars(args), unknown_args, subtasks, network=model)
+        return
+
+    # For other subtasks, get model from spec file
     spec_file = vars(args)["experiment_spec_file"]
+    if not spec_file:
+        raise ValueError(f"The subtask '{subtask}' requires --experiment_spec_file (-e) argument")
+
     with open(spec_file, 'r', encoding='utf-8') as f:
         spec = yaml.safe_load(f)
         if spec and 'model_name' in spec:
             model = spec['model_name']
         else:
-            raise KeyError(f"'model' field not found in {spec_file}. If you wish to use the model-agnostic entrypoint, please populate this value. Otherwise, use the direct entrypoint for the model you desire.")
+            raise KeyError(f"'model_name' field not found in {spec_file}. If you wish to use the model-agnostic entrypoint, please populate this value. Otherwise, use the direct entrypoint for the model you desire.")
 
     # Obtain the list of substasks
     subtasks = get_subtask_list(model)
-    subtask = vars(args)["subtask"]
     if subtask not in subtasks:
         raise KeyError(f"{subtask} is not a valid subtask for {model}. Please choose from {list(subtasks.keys())}")
 

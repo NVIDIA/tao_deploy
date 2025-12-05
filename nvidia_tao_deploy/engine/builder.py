@@ -66,22 +66,36 @@ class EngineBuilder(ABC):
                  strict_type_constraints=False,
                  force_ptq=False,
                  is_qat=False,
-                 timing_cache_path=None):
+                 timing_cache_path=None,
+                 strongly_typed=False):
         """Create a TensorRT engine.
 
-        Args:
-            batch_size (int): batch_size used for calibration
-            verbose (bool): If enabled, a higher verbosity level will be set on the TensorRT logger.
-            max_batch_size (int): Maximum batch size.
-            opt_batch_size (int): Optimal batch size.
-            min_batch_size (int): Minimum batch size.
-            workspace (int): Max memory workspace to allow, in Gb.
-            strict_type (bool): Whether or not to apply strict_type_constraints for INT8 mode.
-            force_ptq (bool): Flag to force post training quantization using TensorRT
-                for a QAT trained model. This is required if the inference platform is
-                a Jetson with a DLA.
-            is_qat (bool): Wheter or not the model is a QAT.
-            timing_cache_path (str): Path to timing cache that will be created/read/updated
+        Parameters
+        ----------
+        batch_size : int, optional
+            Batch size used for calibration.
+        verbose : bool, optional
+            If enabled, a higher verbosity level will be set on the TensorRT logger.
+        max_batch_size : int, optional
+            Maximum batch size.
+        opt_batch_size : int, optional
+            Optimal batch size.
+        min_batch_size : int, optional
+            Minimum batch size.
+        workspace : int, optional
+            Max memory workspace to allow, in Gb.
+        strict_type_constraints : bool, optional
+            Whether or not to apply strict_type_constraints for INT8 mode.
+        force_ptq : bool, optional
+            Flag to force post training quantization using TensorRT
+            for a QAT trained model. This is required if the inference platform is
+            a Jetson with a DLA.
+        is_qat : bool, optional
+            Whether or not the model is a QAT.
+        timing_cache_path : str, optional
+            Path to timing cache that will be created/read/updated.
+        strongly_typed : bool, optional
+            Whether to enable strongly typed mode for quantized models.
         """
         self.trt_logger = trt.Logger(trt.Logger.INFO)
         if verbose:
@@ -109,6 +123,7 @@ class EngineBuilder(ABC):
         logger.info("Setting up QAT mode: {is_qat}".format(is_qat=is_qat))
         self._is_qat = is_qat if not force_ptq else False
         self._strict_type = strict_type_constraints
+        self._strongly_typed = strongly_typed
 
         self._trt_version_number = NV_TENSORRT_MAJOR * 1000 + NV_TENSORRT_MINOR * 100 + \
             NV_TENSORRT_PATCH
@@ -246,6 +261,8 @@ class EngineBuilder(ABC):
                 logger.info('  BuilderFlag.BF16')
             if self.config.get_flag(trt.BuilderFlag.INT8):
                 logger.info('  BuilderFlag.INT8')
+            if hasattr(trt.BuilderFlag, 'STRONGLY_TYPED') and self.config.get_flag(trt.BuilderFlag.STRONGLY_TYPED):
+                logger.info('  BuilderFlag.STRONGLY_TYPED')
             if self.config.get_flag(trt.BuilderFlag.DEBUG):
                 logger.info('  BuilderFlag.DEBUG')
             if self.config.get_flag(trt.BuilderFlag.GPU_FALLBACK):
@@ -434,6 +451,14 @@ class EngineBuilder(ABC):
 
         if self._is_qat and precision.lower() != "int8":
             raise ValueError(f"QAT model only supports data_type int8 but {precision} was provided.")
+
+        # Set STRONGLY_TYPED flag for quantized models if requested
+        if self._strongly_typed:
+            logger.info("Setting STRONGLY_TYPED flag for quantized model")
+            if hasattr(trt.BuilderFlag, 'STRONGLY_TYPED'):
+                self.config.set_flag(trt.BuilderFlag.STRONGLY_TYPED)
+            else:
+                logger.warning("STRONGLY_TYPED flag not available in this TensorRT version")
 
         if precision.lower() == "fp16":
             if not self.builder.platform_has_fast_fp16:

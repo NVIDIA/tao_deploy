@@ -245,6 +245,16 @@ class ImageBatcher:
                 mode='torch')
             new_h, new_w, _ = image.shape
             scale = (orig_h / new_h, orig_w / new_w)
+        elif self.preprocessor == "OneFormer":
+            image = image.resize((self.width, self.height), Image.BICUBIC)
+            image = np.asarray(image, dtype=self.dtype)
+            image = preprocess_input(
+                image,
+                data_format="channels_last",
+                img_mean=self.img_mean,
+                img_std=self.img_std,
+                mode="torch")
+            scale = 1.0
         elif self.preprocessor == "DetectNetv2":
             image = image.resize((self.width, self.height), Image.LANCZOS)
             image = np.asarray(image, dtype=self.dtype)

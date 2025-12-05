@@ -21,7 +21,7 @@ import json
 import logging
 import os
 
-from nvidia_tao_core.cloud_handlers.utils import status_callback
+from nvidia_tao_core.microservices.handlers.cloud_handlers.utils import status_callback
 
 
 logger = logging.getLogger(__name__)
@@ -228,14 +228,26 @@ _STATUS_LOGGER = BaseLogger()
 def set_status_logger(status_logger):
     """Set the status logger.
 
+    This function also automatically enables dual logging, which forwards
+    all standard Python logging calls to the status logger in addition to
+    console output.
+
     Args:
         status_logger: An instance of the logger class.
     """
     global _STATUS_LOGGER  # pylint: disable=W0603
     _STATUS_LOGGER = status_logger
 
+    # Automatically enable dual logging when status logger is set
+    try:
+        from nvidia_tao_deploy.cv.common.logging.tlt_logging import enable_dual_logging  # pylint: disable=C0415
+        enable_dual_logging()
+    except Exception:
+        # Silently fail if dual logging cannot be enabled (e.g., in non-standard environments)
+        pass
+
 
 def get_status_logger():
     """Get the status logger."""
-    global _STATUS_LOGGER  # pylint: disable=W0602,W0603
+    global _STATUS_LOGGER  # noqa: F824 pylint: disable=W0602,W0603
     return _STATUS_LOGGER

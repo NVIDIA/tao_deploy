@@ -112,11 +112,27 @@ There will be situations where developers would be required to update the third 
 
 The base dev docker is defined in `$NV_TAO_DEPLOY_TOP/docker/Dockerfile`. The python packages required for the TAO dev is defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-pip.txt` and the third party apt packages are defined in `$NV_TAO_DEPLOY_TOP/docker/requirements-apt.txt`. Once you have made the required change, please update the base docker using the build script in the same directory.
 
+The unified build script supports multiple platforms:
+- `--x86`: Build for x86_64/AMD64 (uses `Dockerfile`)
+- `--arm`: Build for ARM64 (uses `Dockerfile`)
+- `--multiplatform`: Build for both x86_64 and ARM64 simultaneously (requires `--push`)
+- `--l4t`: Build for Jetson/L4T devices (uses `Dockerfile.l4t`)
+
+The x86, ARM, and multiplatform builds use the same `Dockerfile`, differentiated by the `--platform` flag. L4T uses a separate Dockerfile due to its different base image.
+
 ```sh
 git submodule update --init --recursive
 git submodule foreach git pull origin main
 cd $NV_TAO_DEPLOY_TOP/docker
-./build.sh --build
+
+# Build for x86_64/AMD64 (default on x86 hosts)
+./build.sh --build --x86
+
+# Or build for ARM64
+./build.sh --build --arm
+
+# Or build for Jetson/L4T
+./build.sh --build --l4t
 ```
 
 #### <a name='Testthenewlybuiltbasedocker'></a>Test the newly built base docker
@@ -131,20 +147,30 @@ tao_deploy --tag $USER -- script args
 
 Once you are sufficiently confident about the newly built base docker, please do the following
 
-1. Push the newly built base docker to the registry
+1. Push the newly built base docker to the registry (specify the target platform)
 
     ```sh
-    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --push
+    # For x86_64/AMD64
+    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --x86 --push
+    
+    # For ARM64
+    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --arm --push
+    
+    # For both x86_64 and ARM64 (multiplatform)
+    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --multiplatform --push
+    
+    # For Jetson/L4T
+    bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --l4t --push
     ```
 
-2. The above step produces a digest file associated with the docker. This is a unique identifier for the docker. So please note this, and update all references of the old digest in the repository with the new digest. You may find the old digest in the `$NV_TAO_DEPLOY_TOP/docker/manifest.json`.
+2. The above step produces a digest associated with the docker. This is a unique identifier for the docker. So please note this, and update the platform-specific digest in the repository. The digests are stored in `$NV_TAO_DEPLOY_TOP/docker/manifest.json` with separate entries for `x86` and `arm` platforms.
 
 Push you final updated changes to the repository so that other developers can leverage and sync with the new dev environment.
 
 Please note that if for some reason you would like to force build the docker without using a cache from the previous docker, you may do so by using the `--force` option.
 
 ```sh
-bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --push --force
+bash $NV_TAO_DEPLOY_TOP/docker/build.sh --build --x86 --push --force
 ```
 
 ## <a name='Buildingareleasecontainer'></a>Building a release container

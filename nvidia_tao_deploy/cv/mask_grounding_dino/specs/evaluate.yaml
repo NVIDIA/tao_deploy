@@ -3,13 +3,16 @@ dataset:
   test_data_sources:
     image_dir: "???"
     json_file: "???"
+    data_type: OD
   batch_size: 1
   workers: 8
 evaluate:
   trt_engine: "???"
-  input_width: 960
-  input_height: 544
-  conf_threshold: 0.5
+  input_width: 480
+  input_height: 480
+  conf_threshold: 0.25
+  test_threshold: 0.2
+  nms_threshold: 0.8
 model:
   backbone: swin_tiny_224_1k
   num_feature_levels: 4

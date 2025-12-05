@@ -13,4 +13,4 @@ gen_trt_engine:
     workspace_size: 10240
     min_batch_size: 1
     opt_batch_size: 1
-    max_batch_size: 2
+    max_batch_size: 1

@@ -31,7 +31,15 @@ import pycuda.driver as cuda
 
 from nvidia_tao_deploy.cv.common.telemetry.nvml_utils import get_device_details
 from nvidia_tao_deploy.cv.common.logging import status_logging
+# Try to import default_specs at module level
+try:
+    from nvidia_tao_deploy.cv.common.spec_utils import default_specs
+    DEFAULT_SPECS_AVAILABLE = True
+except ImportError:
+    DEFAULT_SPECS_AVAILABLE = False
+    default_specs = None
 from nvidia_tao_core.telemetry.telemetry import send_telemetry_data
+
 
 RELEASE = True
 # Configure the logger.
@@ -68,6 +76,16 @@ def get_subtasks(package):
             ),
         }
         modules[task] = module_details
+
+    # Add default_specs command as a common subtask for all networks
+    if DEFAULT_SPECS_AVAILABLE:
+        modules["default_specs"] = {
+            "module_name": "nvidia_tao_deploy.cv.common.spec_utils.default_specs",
+            "runner_path": os.path.abspath(default_specs.__file__),
+        }
+    else:
+        logging.warning("Could not load default_specs module")
+
     return modules
 
 
@@ -115,7 +133,7 @@ def command_line_parser(parser, subtasks):
         "-e",
         "--experiment_spec_file",
         help="Path to the experiment spec file.",
-        required=True,
+        required=False,
         default=None,
     )
     # Parse the arguments.
@@ -153,21 +171,38 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
         parser (argparse.ArgumentParser): Parser object to define the command line args.
         subtasks (list): List of subtasks.
     """
-    script_args = ""
-    # Check for whether the experiment spec file exists.
-    if not os.path.exists(args["experiment_spec_file"]):
-        raise FileNotFoundError(
-            f'Experiment spec file wasn not found at {args["experiment_spec_file"]}'
-        )
-    path, name = os.path.split(args["experiment_spec_file"])
-    if path != "":
-        script_args += f" --config-path {os.path.realpath(path)}"
-    script_args += f" --config-name {name}"
+    # default_specs doesn't require an experiment spec file
+    if args["subtask"] != "default_specs":
+        # Check for whether the experiment spec file exists.
+        if args["experiment_spec_file"] is None:
+            raise ValueError(
+                f"The subtask `{args['subtask']}` requires the following argument: -e/--experiment_spec_file"
+            )
+        if not os.path.exists(args["experiment_spec_file"]):
+            raise FileNotFoundError(
+                f'Experiment spec file wasn not found at {args["experiment_spec_file"]}'
+            )
 
-    # This enables a results_dir arg to be passed from the microservice side,
-    # but there is no --results_dir cmdline arg. Instead, the spec field must be used
-    if "results_dir" in args:
-        script_args += " results_dir=" + args["results_dir"]
+    script_args = ""
+
+    # Handle default_specs separately - it doesn't use experiment_spec_file
+    if args["subtask"] == "default_specs":
+        # Add module_name argument (the network name)
+        if network:
+            script_args += f" module_name={network}"
+        # Pass results_dir if provided
+        if "results_dir" in args:
+            script_args += " results_dir=" + args["results_dir"]
+    else:
+        path, name = os.path.split(args["experiment_spec_file"])
+        if path != "":
+            script_args += f" --config-path {os.path.realpath(path)}"
+        script_args += f" --config-name {name}"
+
+        # This enables a results_dir arg to be passed from the microservice side,
+        # but there is no --results_dir cmdline arg. Instead, the spec field must be used
+        if "results_dir" in args:
+            script_args += " results_dir=" + args["results_dir"]
 
     unknown_args_as_str = " ".join(unknown_args)
 
@@ -188,7 +223,7 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
                     unknown_args_as_str.split('gpu_ids=')[1].split()[0]
                 )
         # If no cmdline override, look at specfile
-        else:
+        elif args["experiment_spec_file"] is not None:
             with open(args["experiment_spec_file"], 'r', encoding='utf-8') as spec:
                 exp_config = yaml.safe_load(spec)
                 if args["subtask"] in exp_config:
@@ -205,7 +240,7 @@ def launch(args, unknown_args, subtasks, network="tao-deploy"):
             gpu_ids = [int(
                 unknown_args_as_str.split('gpu_id=')[1].split()[0]
             )]
-        else:
+        elif args["experiment_spec_file"] is not None:
             with open(args["experiment_spec_file"], 'r', encoding='utf-8') as spec:
                 exp_config = yaml.safe_load(spec)
                 if args["subtask"] in exp_config:
