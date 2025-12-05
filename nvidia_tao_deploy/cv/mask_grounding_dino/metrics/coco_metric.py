@@ -88,7 +88,7 @@ class MaskGDinoEvaluationMetric(EvaluationMetric):
             eval_class_ids (list): class ids to evaluate on.
         """
         self.filename = filename
-        self.coco_gt = MaskGDinoCOCO(filename)
+        self.coco_gt = MaskGDinoCOCO(self.filename)
         self.metric_names = ['AP', 'AP50', 'AP75', 'APs', 'APm', 'APl', 'ARmax1',
                              'ARmax10', 'ARmax100', 'ARs', 'ARm', 'ARl']
         self._include_mask = include_mask

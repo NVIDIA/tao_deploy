@@ -122,22 +122,22 @@ def main(cfg: ExperimentConfig) -> None:
             img_file_name = os.path.basename(img_path)
 
             # Store predictions as mask
-            pred = np.argmax(pred, axis=0).astype(np.uint8) * 255
+            pred = np.argmax(pred, axis=0).astype(np.uint8)
             # resize to original image size
-            pred = cv2.resize(pred, (w, h), interpolation=cv2.INTER_LINEAR)
+            pred = cv2.resize(pred, (w, h), interpolation=cv2.INTER_NEAREST)
             output = Image.fromarray(pred.astype(np.uint8))
             output.save(os.path.join(mask_dir, img_file_name))
 
-            output_palette = np.zeros((num_classes, 3), dtype=np.uint8)
+            color_mask = np.zeros((h, w, 3), dtype=np.uint8)
             for c_id, color in id_color_map.items():
-                output_palette[c_id] = color
+                color_mask[pred == c_id] = color
 
             input_img = Image.open(img_path).convert('RGB')
             orig_width, orig_height = input_img.size
             input_img = np.asarray(input_img)
             input_img = imrescale(input_img, (w, h))
 
-            overlay_img = (np.asarray(input_img) / 2 + np.asarray(output.convert("RGB")) / 2).astype('uint8')
+            overlay_img = ((input_img.astype(np.float32) * 0.5) + (color_mask.astype(np.float32) * 0.5)).astype(np.uint8)
             overlay_img = Image.fromarray(overlay_img)
 
             overlay_img = overlay_img.resize((orig_width, orig_height))

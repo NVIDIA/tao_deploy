@@ -19,16 +19,21 @@ import inspect
 import os
 # Import Hydra exception classes for config error handling
 try:
-    from hydra.errors import ConfigCompositionException, MissingConfigException
+    from hydra.errors import ConfigCompositionException, MissingConfigException, HydraException
     from omegaconf.errors import ConfigKeyError, MissingMandatoryValue, UnsupportedInterpolationType
     from omegaconf import OmegaConf
+    # Alias for backward compatibility
+    HydraError = HydraException
 except ImportError:
     # Fallback for older versions or if imports fail
     ConfigCompositionException = Exception
     MissingConfigException = Exception
+    HydraError = Exception
+    HydraException = Exception
     ConfigKeyError = Exception
     MissingMandatoryValue = Exception
     UnsupportedInterpolationType = Exception
+    OmegaConf = Exception
 
 from nvidia_tao_deploy.cv.common.logging import status_logging
 from nvidia_tao_deploy.cv.common.utils import TASKS, update_results_dir

@@ -44,7 +44,7 @@ from nvidia_tao_deploy.cv.depth_net.utils import check_batch_sizes
 
 from nvidia_tao_deploy.cv.common.decorators import monitor_status
 from nvidia_tao_deploy.cv.common.hydra.hydra_runner import hydra_runner
-
+from nvidia_tao_deploy.cv.common.logging import status_logging
 
 logging.basicConfig(format='%(asctime)s [TAO Toolkit] [%(levelname)s] %(name)s %(lineno)d: %(message)s',
                     level="INFO")
@@ -137,9 +137,17 @@ def main(cfg: ExperimentConfig) -> None:
     # Computing the final evaluation metrics and store evaluation results into JSON
     eval_results = evaluator.compute()
     logging.info("logging evaluation results.")
+    status_logging_dict = {}
     for key, value in sorted(eval_results.items(), key=operator.itemgetter(0)):
         eval_results[key] = float(value)
+        status_logging_dict[key] = float(value)
         logging.info("%s: %.9f", key, value)
+
+    status_logging.get_status_logger().kpi = status_logging_dict
+    status_logging.get_status_logger().write(
+        message="Eval metrics generated.",
+        status_level=status_logging.Status.SUCCESS
+    )
 
     with open(os.path.join(cfg.results_dir, "results.json"), "w", encoding="utf-8") as f:
         json.dump(eval_results, f, indent=4)

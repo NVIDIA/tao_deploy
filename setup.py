@@ -93,6 +93,7 @@ setuptools.setup(
             'multitask_classification=nvidia_tao_deploy.cv.multitask_classification.entrypoint.multitask_classification:main',
             'ocdnet=nvidia_tao_deploy.cv.ocdnet.entrypoint.ocdnet:main',
             'ocrnet=nvidia_tao_deploy.cv.ocrnet.entrypoint.ocrnet:main',
+            'oneformer=nvidia_tao_deploy.cv.oneformer.entrypoint.oneformer:main',
             'optical_inspection=nvidia_tao_deploy.cv.optical_inspection.entrypoint.optical_inspection:main',
             'pointpillars=nvidia_tao_deploy.cv.pointpillars.entrypoint.pointpillars:main',
             'retinanet=nvidia_tao_deploy.cv.retinanet.entrypoint.retinanet:main',
@@ -106,7 +107,7 @@ setuptools.setup(
             'yolo_v4_tiny=nvidia_tao_deploy.cv.yolo_v4.entrypoint.yolo_v4:main',
             'model_agnostic=nvidia_tao_deploy.cv.common.entrypoint.entrypoint_agnostic:main',
             'nvdinov2=nvidia_tao_deploy.cv.nvdinov2.entrypoint.nvdinov2:main',
-            'mae=nvidia_tao_deploy.cv.mae.entrypoint.mae:main'
+            'mae=nvidia_tao_deploy.cv.mae.entrypoint.mae:main',
         ]
     }
 )
