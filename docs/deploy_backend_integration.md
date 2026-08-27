@@ -105,10 +105,12 @@ writes results under `results_dir`.
 Add focused tests under `tests/MODEL_NAME/`. Match existing local patterns:
 
 ```sh
-python ci/run_static_tests.py
-python ci/run_functional_tests.py --module MODEL_NAME
+pre-commit run --from-ref origin/main --to-ref HEAD
 pytest --color=yes -v tests/MODEL_NAME
 ```
+
+The modern test template is `tests/clip/` / `tests/video_clip/` (config,
+dataloader, engine builder, entrypoint, evaluation, and inferencer tests).
 
 For GPU, TensorRT, model-artifact, or private-dataset tests that cannot be run
 locally, state exactly which checks were skipped and why.
