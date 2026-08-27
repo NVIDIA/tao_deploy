@@ -6,6 +6,10 @@
 from functools import wraps
 import inspect
 import os
+import warnings
+
+from colorama import init
+from termcolor import colored
 # Import Hydra exception classes for config error handling
 try:
     from hydra.errors import ConfigCompositionException, MissingConfigException, HydraException
@@ -33,6 +37,58 @@ try:
     from marshmallow.exceptions import ValidationError as MarshmallowValidationError
 except ImportError:
     MarshmallowValidationError = Exception
+
+
+def experimental(reason):
+    """
+    This is a decorator which can be used to mark functions
+    as experimental. It will result in a warning being emitted
+    when the function is used.
+    """
+    init()
+    if isinstance(reason, str):
+        def decorator(func1):
+
+            fmt1 = colored("Call to experimental function {name} ({reason}).", 'white', 'on_yellow')
+            if inspect.isclass(func1):
+                fmt1 = colored("Call to experimental class {name} ({reason}).", 'white', 'on_yellow')
+
+            @wraps(func1)
+            def new_func1(*args, **kwargs):
+                warnings.simplefilter('always', UserWarning)
+                warnings.warn(
+                    fmt1.format(name=func1.__name__, reason=reason),
+                    category=UserWarning,
+                    stacklevel=2
+                )
+                warnings.simplefilter('default', UserWarning)
+                return func1(*args, **kwargs)
+
+            return new_func1
+
+        return decorator
+
+    if inspect.isclass(reason) or inspect.isfunction(reason):
+        func2 = reason
+
+        fmt2 = colored("Call to experimental function {name}.", 'white', 'on_yellow')
+        if inspect.isclass(func2):
+            fmt2 = colored("Call to experimental class {name}.", 'white', 'on_yellow')
+
+        @wraps(func2)
+        def new_func2(*args, **kwargs):
+            warnings.simplefilter('always', UserWarning)
+            warnings.warn(
+                fmt2.format(name=func2.__name__),
+                category=UserWarning,
+                stacklevel=2
+            )
+            warnings.simplefilter('default', UserWarning)
+            return func2(*args, **kwargs)
+
+        return new_func2
+
+    raise TypeError(repr(type(reason)))
 
 
 def monitor_status(name='module name', mode='gen_trt_engine', hydra=True):
