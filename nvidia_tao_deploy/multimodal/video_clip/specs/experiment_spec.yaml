@@ -21,7 +21,7 @@ gen_trt_engine:
   batch_size: -1               # -1 for dynamic batch
   tensorrt:
     workspace_size: 8192       # MB
-    data_type: fp32            # fp32 required — fp16 collapses the vision tower
+    data_type: fp32            # fp32 recommended; fp16 supported (sensitive vision-norm reductions are kept in FP32)
     min_batch_size: 1
     opt_batch_size: 8
     max_batch_size: 16
