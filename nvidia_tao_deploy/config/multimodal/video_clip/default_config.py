@@ -62,8 +62,8 @@ class VideoCLIPEvalDataConfig:
         value=MISSING,
         default_value=MISSING,
         description="Explicit-relevance eval file (e.g. domain_test_*.json) with "
-                    "'gallery' and 'queries' (each query: text, chunk_id, slice, "
-                    "relevant_clip_ids).",
+                    "'gallery' and 'queries' (each query record: query, chunk_id, "
+                    "slice, relevant_clip_ids).",
         display_name="Ground-truth Queries",
     )
     metadata: str = STR_FIELD(
